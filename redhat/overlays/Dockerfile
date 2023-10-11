@@ -17,5 +17,6 @@ RUN chgrp -R 0 /${HOME} && chmod -R g=u /${HOME}
 
 WORKDIR ${HOME}
 
+LABEL com.redhat.component="gitsign"
 # Makes sure the container stays running
 CMD ["tail", "-f", "/dev/null"]
