@@ -59,8 +59,7 @@ else
 fi
 
 # RHTAP writes its pipeline files to the root of ${redhat_ref}
-# Fetch those from origin and apply them to the the release branch
-# since we just wiped out our local copy with the upstream ref.
+# Fetch those from origin and merge them into the the ci branch
 git fetch origin $redhat_ref
 git merge origin/$redhat_ref --no-edit
 
