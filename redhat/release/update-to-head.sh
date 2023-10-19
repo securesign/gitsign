@@ -72,9 +72,9 @@ if [[ -d redhat/patches ]]; then
   git apply redhat/patches/*
 fi
 
-# Move overlays to root
+# Copy overlays to root
 if [[ -d redhat/overlays ]]; then
-  mv redhat/overlays/* .
+  cp -Rp redhat/overlays/* .
 fi
 
 git add . # Adds applied patches
