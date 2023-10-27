@@ -1,5 +1,5 @@
 # Build stage
-FROM registry.access.redhat.com/ubi9/go-toolset@sha256:52ab391730a63945f61d93e8c913db4cc7a96f200de909cd525e2632055d9fa6 AS build-env
+FROM registry.access.redhat.com/ubi9/go-toolset@sha256:82d9bc5d3ceb43635288880f26207201e55d1c688a60ebbfff4f54d4963a62a1 AS build-env
 WORKDIR /gitsign
 RUN git config --global --add safe.directory /gitsign
 COPY . .
