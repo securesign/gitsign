@@ -4,13 +4,16 @@ WORKDIR /gitsign
 RUN git config --global --add safe.directory /gitsign
 COPY . .
 USER root
-RUN make -f Build.mak gitsign-cli-darwin-amd64
-RUN make -f Build.mak gitsign-cli-linux-amd64
-RUN make -f Build.mak gitsign-cli-windows
-RUN gzip gitsign_cli_darwin_amd64
-RUN gzip gitsign_cli_linux_amd64
-RUN gzip gitsign_cli_windows_amd64.exe
-RUN ls -a
+RUN git stash && \
+    export GIT_VERSION=$(git describe --tags --always --dirty) && \
+    git stash pop && \
+    make -f Build.mak gitsign-cli-darwin-amd64 && \
+    make -f Build.mak gitsign-cli-linux-amd64 && \
+    make -f Build.mak gitsign-cli-windows && \
+    gzip gitsign_cli_darwin_amd64 && \
+    gzip gitsign_cli_linux_amd64 && \
+    gzip gitsign_cli_windows_amd64.exe && \
+    ls -la
 
 # Install Gitsign
 FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:b40f52aa68b29634ff45429ee804afbaa61b33de29ae775568933c71610f07a4
@@ -26,15 +29,13 @@ COPY --from=build-env /gitsign/gitsign_cli_darwin_amd64.gz /usr/local/bin/gitsig
 COPY --from=build-env /gitsign/gitsign_cli_linux_amd64.gz /usr/local/bin/gitsign_cli_linux_amd64.gz
 COPY --from=build-env /gitsign/gitsign_cli_windows_amd64.exe.gz /usr/local/bin/gitsign_cli_windows_amd64.exe.gz
 
-RUN chown root:0 /usr/local/bin/gitsign_cli_darwin_amd64.gz && chmod g+wx /usr/local/bin/gitsign_cli_darwin_amd64.gz
-RUN chown root:0 /usr/local/bin/gitsign_cli_linux_amd64.gz && chmod g+wx /usr/local/bin/gitsign_cli_linux_amd64.gz
-RUN chown root:0 /usr/local/bin/gitsign_cli_windows_amd64.exe.gz && chmod g+wx /usr/local/bin/gitsign_cli_windows_amd64.exe.gz
-
-# Configure home directory
 ENV HOME=/home
-RUN chgrp -R 0 /${HOME} && chmod -R g=u /${HOME}
-
 WORKDIR ${HOME}
+
+RUN chown root:0 /usr/local/bin/gitsign_cli_darwin_amd64.gz && chmod g+wx /usr/local/bin/gitsign_cli_darwin_amd64.gz && \
+    chown root:0 /usr/local/bin/gitsign_cli_linux_amd64.gz && chmod g+wx /usr/local/bin/gitsign_cli_linux_amd64.gz && \
+    chown root:0 /usr/local/bin/gitsign_cli_windows_amd64.exe.gz && chmod g+wx /usr/local/bin/gitsign_cli_windows_amd64.exe.gz && \
+    chgrp -R 0 /${HOME} && chmod -R g=u /${HOME}
 
 LABEL com.redhat.component="gitsign"
 # Makes sure the container stays running
