@@ -5,6 +5,7 @@ RUN git config --global --add safe.directory /gitsign
 COPY . .
 USER root
 RUN git status && \
+  git diff && \
   make -f Build.mak gitsign-cli-darwin-amd64 && \
   make -f Build.mak gitsign-cli-linux-amd64 && \
   make -f Build.mak gitsign-cli-windows && \
