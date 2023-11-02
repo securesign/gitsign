@@ -5,14 +5,17 @@ RUN git config --global --add safe.directory /gitsign
 COPY . .
 USER root
 RUN git status && \
-  git diff && \
-  make -f Build.mak gitsign-cli-darwin-amd64 && \
-  make -f Build.mak gitsign-cli-linux-amd64 && \
-  make -f Build.mak gitsign-cli-windows && \
-  gzip gitsign_cli_darwin_amd64 && \
-  gzip gitsign_cli_linux_amd64 && \
-  gzip gitsign_cli_windows_amd64.exe && \
-  ls -la
+    git stash && \
+    export GIT_VERSION=$(git describe --tags --always --dirty) && \
+    git stash pop && \
+    echo "Building Gitsign version ${GIT_VERSION}" && \
+    make -f Build.mak gitsign-cli-darwin-amd64 && \
+    make -f Build.mak gitsign-cli-linux-amd64 && \
+    make -f Build.mak gitsign-cli-windows && \
+    gzip gitsign_cli_darwin_amd64 && \
+    gzip gitsign_cli_linux_amd64 && \
+    gzip gitsign_cli_windows_amd64.exe && \
+    ls -la
 
 # Install Gitsign
 FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:b40f52aa68b29634ff45429ee804afbaa61b33de29ae775568933c71610f07a4
