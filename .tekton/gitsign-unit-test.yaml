@@ -13,7 +13,7 @@ spec:
       workingDir: $(workspaces.source.path)/source
       script: |
         #!/usr/bin/env sh
-        go test $(go list ./... | grep -v /pkg/version/)
+        go test $(go list ./... | grep -v github.com/sigstore/gitsign/pkg/version)
 
 # This file bundles the unit tests for gitsign. 
 # If any changes are made to this file, it must be pushed to Quay using the following command:
