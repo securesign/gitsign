@@ -382,7 +382,7 @@ spec:
         - name: name
           value: go-unit-test
         - name: bundle
-          value: quay.io/securesign/gitsign-unit-test@sha256:724966df02719a4161bd037ff81f6d8aaf3c7945b0f01847e1d449835ae4c4f6
+          value: quay.io/securesign/gitsign-unit-test@sha256:a5be0323b41d40127579adde4bbb6cf87e3d2dabc070ae719be3f708bfd14fe6
         - name: kind
           value: task
         resolver: bundles
@@ -394,6 +394,12 @@ spec:
     - name: git-auth
       optional: true
   taskRunTemplate: {}
+  taskRunSpecs:
+    - pipelineTaskName: run-unit-test
+      serviceAccountName: appstudio-pipeline
+      podTemplate:
+        imagePullSecrets:
+          - name: brew-registry-pull-secret
   workspaces:
   - name: workspace
     volumeClaimTemplate:
