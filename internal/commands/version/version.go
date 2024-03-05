@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 
+	rhtasVersion "github.com/securesign/go-version-package/version"
 	"github.com/sigstore/gitsign/internal/config"
 	"github.com/sigstore/gitsign/pkg/version"
 	"github.com/spf13/cobra"
@@ -30,8 +31,10 @@ func New(cfg *config.Config) *cobra.Command {
 		Use:   "version",
 		Short: "print Gitsign version",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			rv := rhtasVersion.GetVersionInfo()
 			v := version.GetVersionInfo()
 			fmt.Println("gitsign version", v.GitVersion)
+			fmt.Println("rhtas version", rv.RhtasVersion)
 			if len(v.Env) > 0 {
 				fmt.Println("env:")
 				for _, e := range v.Env {
