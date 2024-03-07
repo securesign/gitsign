@@ -34,7 +34,7 @@ import (
 	"github.com/sigstore/gitsign/internal/config"
 	"github.com/sigstore/gitsign/internal/fulcio/fulcioroots"
 	"github.com/sigstore/gitsign/internal/signerverifier"
-	"github.com/sigstore/sigstore/pkg/oauth"
+	"github.com/sigstore/gitsign/internal/ui"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"golang.org/x/oauth2"
@@ -194,7 +194,7 @@ func NewIdentityFactory(in io.Reader, out io.Writer) *IdentityFactory {
 func (f *IdentityFactory) NewIdentity(ctx context.Context, cfg *config.Config) (*Identity, error) {
 	clientID := cfg.ClientID
 	defaultFlow := &oauthflow.InteractiveIDTokenGetter{
-		HTMLPage: oauth.InteractiveSuccessHTML,
+		HTMLPage: ui.RedHatInteractiveSuccessHTML,
 		Input:    f.in,
 		Output:   f.out,
 	}
