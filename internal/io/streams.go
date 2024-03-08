@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime/debug"
 
 	"github.com/mattn/go-tty"
 )
@@ -72,7 +71,7 @@ func (s *Streams) Wrap(fn func() error) error {
 	// Log any panics to ttyout, since otherwise they will be lost to os.Stderr.
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Fprintln(s.TTYOut, r, string(debug.Stack()))
+			fmt.Fprintln(s.TTYOut, r)
 		}
 	}()
 
