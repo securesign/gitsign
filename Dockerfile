@@ -19,7 +19,7 @@ RUN git stash && \
     ls -la
 
 # Install Gitsign
-FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:06d06f15f7b641a78f2512c8817cbecaa1bf549488e273f5ac27ff1654ed33f0
+FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:119ac25920c8bb50c8b5fd75dcbca369bf7d1f702b82f3d39663307890f0bf26
 
 LABEL description="Gitsign is a source code signing tool that leverages simple, secure, and auditable signatures based on simple primitives and best practices."
 LABEL io.k8s.description="Gitsign is a source code signing tool that leverages simple, secure, and auditable signatures based on simple primitives and best practices."
