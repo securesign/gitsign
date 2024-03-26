@@ -32,8 +32,9 @@ var (
 )
 
 type Info struct {
-	GitVersion string   `json:"gitVersion"`
-	Env        []string `json:"env"`
+	GitVersion   string   `json:"gitVersion"`
+	RhtasVersion string   `json:"rhtasVersion"`
+	Env          []string `json:"env"`
 }
 
 func getBuildInfo() *debug.BuildInfo {
@@ -82,7 +83,8 @@ func GetVersionInfo() Info {
 	buildInfo := getBuildInfo()
 	gitVersion = getGitVersion(buildInfo)
 	return Info{
-		GitVersion: gitVersion,
-		Env:        getGitsignEnv(),
+		GitVersion:   gitVersion,
+		RhtasVersion: "v1.0.0",
+		Env:          getGitsignEnv(),
 	}
 }
