@@ -34,12 +34,9 @@ import (
 	"github.com/sigstore/gitsign/internal/config"
 	"github.com/sigstore/gitsign/internal/fulcio/fulcioroots"
 	"github.com/sigstore/gitsign/internal/signerverifier"
-<<<<<<< HEAD
 	"github.com/sigstore/gitsign/internal/ui"
-=======
 	"github.com/sigstore/gitsign/pkg/fulcio"
 	"github.com/sigstore/sigstore/pkg/oauth"
->>>>>>> 337b099
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"golang.org/x/oauth2"
@@ -204,10 +201,9 @@ func (f *IdentityFactory) NewIdentity(ctx context.Context, cfg *config.Config) (
 	if cfg.ConnectorID == "" {
 		cfg.Autoclose = false
 	}
-	html, err := oauth.GetInteractiveSuccessHTML(cfg.Autoclose, cfg.AutocloseTimeout)
+	_, err := oauth.GetInteractiveSuccessHTML(cfg.Autoclose, cfg.AutocloseTimeout)
 	if err != nil {
 		fmt.Println("error getting interactive success html, using static default", err)
-		html = oauth.InteractiveSuccessHTML
 	}
 	defaultFlow := &oauthflow.InteractiveIDTokenGetter{
 		HTMLPage: ui.RedHatInteractiveSuccessHTML,
