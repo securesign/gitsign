@@ -34,7 +34,12 @@ import (
 	"github.com/sigstore/gitsign/internal/config"
 	"github.com/sigstore/gitsign/internal/fulcio/fulcioroots"
 	"github.com/sigstore/gitsign/internal/signerverifier"
+<<<<<<< HEAD
 	"github.com/sigstore/gitsign/internal/ui"
+=======
+	"github.com/sigstore/gitsign/pkg/fulcio"
+	"github.com/sigstore/sigstore/pkg/oauth"
+>>>>>>> 337b099
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"golang.org/x/oauth2"
@@ -193,6 +198,17 @@ func NewIdentityFactory(in io.Reader, out io.Writer) *IdentityFactory {
 
 func (f *IdentityFactory) NewIdentity(ctx context.Context, cfg *config.Config) (*Identity, error) {
 	clientID := cfg.ClientID
+
+	// Autoclose only works if we don't go through the identity selection page
+	// (otherwise it'll show a countdown timer that doesn't work)
+	if cfg.ConnectorID == "" {
+		cfg.Autoclose = false
+	}
+	html, err := oauth.GetInteractiveSuccessHTML(cfg.Autoclose, cfg.AutocloseTimeout)
+	if err != nil {
+		fmt.Println("error getting interactive success html, using static default", err)
+		html = oauth.InteractiveSuccessHTML
+	}
 	defaultFlow := &oauthflow.InteractiveIDTokenGetter{
 		HTMLPage: ui.RedHatInteractiveSuccessHTML,
 		Input:    f.in,
@@ -233,8 +249,8 @@ func (f *IdentityFactory) NewIdentity(ctx context.Context, cfg *config.Config) (
 		return nil, fmt.Errorf("generating private key: %w", err)
 	}
 
-	client, err := NewClient(cfg.Fulcio,
-		OIDCOptions{
+	client, err := fulcio.NewClient(cfg.Fulcio,
+		fulcio.OIDCOptions{
 			Issuer:      cfg.Issuer,
 			ClientID:    clientID,
 			RedirectURL: cfg.RedirectURL,
