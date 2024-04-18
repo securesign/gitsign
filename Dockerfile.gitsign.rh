@@ -27,6 +27,7 @@ LABEL io.k8s.display-name="Gitsign container image for Red Hat Trusted Artifact 
 LABEL io.openshift.tags="gitsign trusted-artifact-signer"
 LABEL summary="Provides the gitsign CLI binary for signing and verifying container images."
 LABEL com.redhat.component="gitsign"
+LABEL name="gitsign"
 
 COPY --from=build-env /gitsign/gitsign_cli_darwin_amd64.gz /usr/local/bin/gitsign_cli_darwin_amd64.gz
 COPY --from=build-env /gitsign/gitsign_cli_linux_amd64.gz /usr/local/bin/gitsign_cli_linux_amd64.gz
