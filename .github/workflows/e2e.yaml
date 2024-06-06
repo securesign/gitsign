@@ -3,14 +3,14 @@ name: E2E
 on:
   push:
   pull_request_target:
-    branches: ['main']
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
   e2e:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # Enable OIDC
+      id-token: write # Enable OIDC
 
       # The rest of these are sanity-check settings, since I'm not sure if the
       # org default is permissive or restricted.
@@ -28,12 +28,8 @@ jobs:
       security-events: none
       statuses: none
 
-    env:
-      # Output logs to file in case we need to inspect errors.
-      GITSIGN_LOG: "/tmp/gitsign.log"
-
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
         with:
           # Use the merge commit if type is pull_request/pull_request_target,
           # else use the default ref.
@@ -43,13 +39,20 @@ jobs:
           # for the e2e tests, so insert our own logic here.
           # This is effectively a ternary of the form ${{ <condition> && <true> || <false> }}.
           # See https://docs.github.com/en/actions/learn-github-actions/expressions for more details.
-          ref: ${{ startsWith(github.event_name, 'pull_request') && format('refs/pull/{0}/merge', github.event.number) || github.ref }}
+          ref:
+            ${{ startsWith(github.event_name, 'pull_request') &&
+            format('refs/pull/{0}/merge', github.event.number) || github.ref }}
 
       - name: Set up Go
-        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
         with:
-          go-version: '1.21'
+          go-version: "1.22"
           check-latest: true
+
+      - name: e2e unit tests
+        run: |
+          set -e
+          make e2e-test
 
       - name: Install Gitsign
         run: |
@@ -121,9 +124,9 @@ jobs:
         run: |
           set -e
 
-          # Setup staging TUF root - https://github.com/sigstore/public-good-instance/blob/1023ed05b7a8cf28e6a7de73bf98dd5075d97858/playbooks/tuf.md#updating-tuf-metadata-for-staging
+          # Initialize with staging TUF root - https://github.com/sigstore/root-signing-staging
           rm -rf ~/.sigstore
-          wget https://tuf-repo-cdn.sigstage.dev/root.json
+          wget -O root.json -U "gitsign e2e test" https://tuf-repo-cdn.sigstage.dev/4.root.json
           gitsign initialize --mirror=https://tuf-repo-cdn.sigstage.dev --root=root.json
 
           # Sign commit
