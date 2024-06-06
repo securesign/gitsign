@@ -103,7 +103,7 @@ func New(cfg *config.Config) *cobra.Command {
 		Use:   "attest",
 		Short: "add attestations to Git objects",
 		Args:  cobra.ArbitraryArgs,
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
 			return o.Run(ctx)
 		},

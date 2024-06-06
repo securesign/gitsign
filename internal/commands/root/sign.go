@@ -41,6 +41,9 @@ func commandSign(o *options, s *gsio.Streams, args ...string) error {
 	if o.FlagVerify {
 		return errors.New("specify --help, --sign, or --verify")
 	}
+	if len(o.FlagLocalUser) == 0 {
+		return errors.New("specify a USER-ID to sign with")
+	}
 
 	userIdent, err := fulcio.NewIdentity(ctx, o.Config, s.TTYIn, s.TTYOut)
 	if err != nil {
