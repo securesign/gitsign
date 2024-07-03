@@ -22,7 +22,7 @@ spec:
   - name: git-url
     value: '{{repo_url}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/rhtas-tenant/cli/gitsign:{{revision}}
+    value: quay.io/securesign/gitsign:{{revision}}
   - name: path-context
     value: .
   - name: revision
