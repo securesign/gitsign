@@ -8,7 +8,7 @@ RUN git stash && \
     export GIT_VERSION=$(git describe --tags --always --dirty) && \
     export GIT_HASH=$(git rev-parse HEAD) && \
     export BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') && \
-    git stash pop && \
+    git stash pop || true && \
     go mod download && \
     make -f Build.mak cross-platform && \
     gzip gitsign_cli_darwin_amd64 && \
