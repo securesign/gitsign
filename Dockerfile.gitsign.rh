@@ -1,5 +1,5 @@
 # Build stage
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.21@sha256:98a0ff138c536eee98704d6909699ad5d0725a20573e2c510a60ef462b45cce0 AS build-env
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder@sha256:b4242f87696cf168b1fc733a969ef60ee53716dd3c551b02303d76f9d42a53d7 AS build-env
 WORKDIR /gitsign
 RUN git config --global --add safe.directory /gitsign
 COPY . .
@@ -21,7 +21,7 @@ RUN git stash && \
     ls -la
 
 # Install Gitsign
-FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:f5d2c6a1e0c86e4234ea601552dbabb4ced0e013a1efcbfb439f1f6a7a9275b0
+FROM registry.access.redhat.com/ubi9-minimal@sha256:8b6978d555746877c73f52375f60fd7b6fd27d6aca000eaed27d0995303c13de
 
 LABEL description="Gitsign is a source code signing tool that leverages simple, secure, and auditable signatures based on simple primitives and best practices."
 LABEL io.k8s.description="Gitsign is a source code signing tool that leverages simple, secure, and auditable signatures based on simple primitives and best practices."

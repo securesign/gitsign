@@ -39,6 +39,14 @@ spec:
     value: true
   - name: go_test_command
     value: go test $(go list ./... | grep -v github.com/sigstore/gitsign/pkg/version)
+  - name: go_base_image
+    value: brew.registry.redhat.io/rh-osbs/openshift-golang-builder@sha256:b4242f87696cf168b1fc733a969ef60ee53716dd3c551b02303d76f9d42a53d7
+  taskRunSpecs:
+    - pipelineTaskName: run-unit-test
+      serviceAccountName: appstudio-pipeline
+      podTemplate:
+        imagePullSecrets:
+        - name: brew-registry-pull-secret
   pipelineRef:
     resolver: git
     params:
@@ -49,12 +57,6 @@ spec:
       - name: pathInRepo
         value: 'pipelines/docker-build-oci-ta.yaml'
   taskRunTemplate: {}
-  taskRunSpecs:
-  - pipelineTaskName: run-unit-test
-    serviceAccountName: appstudio-pipeline
-    podTemplate:
-      imagePullSecrets:
-      - name: brew-registry-pull-secret
   workspaces:
   - name: git-auth
     secret:
