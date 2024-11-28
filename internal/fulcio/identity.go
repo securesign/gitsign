@@ -207,7 +207,7 @@ func (f *IdentityFactory) NewIdentity(ctx context.Context, cfg *config.Config) (
 	if cfg.ConnectorID == "" {
 		cfg.Autoclose = false
 	}
-	_, err := oauth.GetInteractiveSuccessHTML(cfg.Autoclose, cfg.AutocloseTimeout)
+	_, err = oauth.GetInteractiveSuccessHTML(cfg.Autoclose, cfg.AutocloseTimeout)
 	if err != nil {
 		fmt.Println("error getting interactive success html, using static default", err)
 	}
