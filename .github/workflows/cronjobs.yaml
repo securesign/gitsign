@@ -13,6 +13,6 @@ jobs:
         branch: [main]
     with:
       branch: ${{ matrix.branch }}
-      images: '["registry.access.redhat.com/ubi9/ubi-minimal"]'
+      images: '["registry.access.redhat.com/ubi9-minimal"]'
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
