@@ -207,7 +207,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.15 // indirect
 	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.8.15 // indirect
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.15 // indirect
-	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.15 // indirect
+	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.9.1 // indirect
 	github.com/sigstore/timestamp-authority v1.2.4 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/skeema/knownhosts v1.3.1 // indirect
