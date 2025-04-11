@@ -1,8 +1,8 @@
 module github.com/sigstore/gitsign
 
-go 1.23.4
+go 1.24.0
 
-toolchain go1.23.7
+toolchain go1.24.2
 
 require (
 	github.com/coreos/go-oidc/v3 v3.13.0
@@ -173,7 +173,7 @@ require (
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
-	github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec // indirect
+	github.com/letsencrypt/boulder v0.0.0-20250404210133-7b75602bbc06 // indirect
 	github.com/magiconair/properties v1.8.9 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
