@@ -1,8 +1,8 @@
 module github.com/sigstore/gitsign
 
-go 1.23.4
+go 1.24.0
 
-toolchain go1.23.7
+toolchain go1.24.2
 
 require (
 	github.com/coreos/go-oidc/v3 v3.13.0
@@ -124,7 +124,7 @@ require (
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.23.0 // indirect
@@ -173,7 +173,7 @@ require (
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
-	github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec // indirect
+	github.com/letsencrypt/boulder v0.0.0-20250411005613-d800055fe666 // indirect
 	github.com/magiconair/properties v1.8.9 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
