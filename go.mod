@@ -253,7 +253,7 @@ require (
 	google.golang.org/api v0.227.0 // indirect
 	google.golang.org/genproto v0.0.0-20250409194420-de1ac958c67a // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250404141209-ee84b53bf3d0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250404141209-ee84b53bf3d0 // indirect
+	google.golang.org/genproto/googleapis/rpc 207652e42e2e // indirect
 	google.golang.org/grpc v1.71.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
