@@ -22,6 +22,7 @@ import (
 	"github.com/sigstore/gitsign/internal/commands/initialize"
 	"github.com/sigstore/gitsign/internal/commands/show"
 	"github.com/sigstore/gitsign/internal/commands/verify"
+	verifytag "github.com/sigstore/gitsign/internal/commands/verify-tag"
 	"github.com/sigstore/gitsign/internal/commands/version"
 	"github.com/sigstore/gitsign/internal/config"
 	"github.com/sigstore/gitsign/internal/io"
@@ -76,7 +77,7 @@ func New(cfg *config.Config) *cobra.Command {
 							return item.RunE(item, cmd.Flags().Args())
 						}
 					}
-				case o.FlagSign:
+				case o.FlagSign, o.FlagDetachedSignature:
 					return commandSign(o, s, args...)
 				case o.FlagVerify:
 					return commandVerify(o, s, args...)
@@ -92,6 +93,7 @@ func New(cfg *config.Config) *cobra.Command {
 	rootCmd.AddCommand(show.New(cfg))
 	rootCmd.AddCommand(attest.New(cfg))
 	rootCmd.AddCommand(verify.New(cfg))
+	rootCmd.AddCommand(verifytag.New(cfg))
 	rootCmd.AddCommand(initialize.New())
 	o.AddFlags(rootCmd)
 
