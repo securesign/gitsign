@@ -48,6 +48,15 @@ spec:
     resolver: git
   taskRunSpecs:
   - pipelineTaskName: run-unit-test
+    stepSpecs:
+    - computeResources:
+        limits:
+          cpu: "3"
+          memory: 3Gi
+        requests:
+          cpu: "3"
+          memory: 3Gi
+      name: run-unit-test
     podTemplate:
       imagePullSecrets:
       - name: brew-registry-pull-secret
