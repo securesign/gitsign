@@ -56,7 +56,7 @@ spec:
         requests:
           cpu: "3"
           memory: 3Gi
-      name: run-unit-test
+      name: run-tests
     podTemplate:
       imagePullSecrets:
       - name: brew-registry-pull-secret
