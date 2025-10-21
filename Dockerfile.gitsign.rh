@@ -42,6 +42,8 @@ COPY --from=build-env /gitsign/gitsign_cli_linux_arm64.gz /usr/local/bin/gitsign
 COPY --from=build-env /gitsign/gitsign_cli_linux_ppc64le.gz /usr/local/bin/gitsign_cli_linux_ppc64le.gz
 COPY --from=build-env /gitsign/gitsign_cli_linux_s390x.gz /usr/local/bin/gitsign_cli_linux_s390x.gz
 COPY --from=build-env /gitsign/gitsign_cli_windows_amd64.exe.gz /usr/local/bin/gitsign_cli_windows_amd64.exe.gz
+COPY LICENSE /licenses/license.txt
+
 
 ENV HOME=/home
 WORKDIR ${HOME}
@@ -56,5 +58,8 @@ RUN chown root:0 /usr/local/bin/gitsign_cli_darwin_amd64.gz && chmod g+wx /usr/l
     chgrp -R 0 /${HOME} && chmod -R g=u /${HOME}
 
 LABEL com.redhat.component="gitsign"
+
+USER 65532:65532
+
 # Makes sure the container stays running
 CMD ["tail", "-f", "/dev/null"]
