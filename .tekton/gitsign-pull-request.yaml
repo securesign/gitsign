@@ -54,7 +54,7 @@ spec:
     podTemplate:
       imagePullSecrets:
       - name: brew-registry-pull-secret
-    serviceAccountName: appstudio-pipeline
+    serviceAccountName: build-pipeline-gitsign
   taskRunTemplate:
     serviceAccountName: build-pipeline-gitsign
   workspaces:
