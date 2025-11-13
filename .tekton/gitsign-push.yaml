@@ -37,6 +37,14 @@ spec:
     value: "true"
   - name: go_test_command
     value: go test $(go list ./... | grep -v github.com/sigstore/gitsign/pkg/version)
+  - name: build-platforms
+    value:
+      - linux/x86_64
+      - linux/arm64
+      - linux/ppc64le
+      - linux/s390x
+  - name: fips-check
+    value: "true"
   pipelineRef:
     params:
     - name: url
@@ -44,19 +52,15 @@ spec:
     - name: revision
       value: main
     - name: pathInRepo
-      value: pipelines/docker-build-oci-ta.yaml
+      value: pipelines/docker-build-multi-platform-oci-ta.yaml
     resolver: git
   taskRunSpecs:
   - pipelineTaskName: run-unit-test
     stepSpecs:
     - computeResources:
         limits:
-          memory: 5Gi
+          memory: 4Gi
       name: run-tests
-    podTemplate:
-      imagePullSecrets:
-      - name: brew-registry-pull-secret
-    serviceAccountName: build-pipeline-gitsign
   taskRunTemplate:
     serviceAccountName: build-pipeline-gitsign
   workspaces:
