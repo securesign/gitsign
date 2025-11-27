@@ -1,5 +1,5 @@
 # Build stage
-FROM registry.redhat.io/ubi9/go-toolset:9.7@sha256:380d6de9bbc5a42ca13d425be99958fb397317664bb8a00e49d464e62cc8566c AS build-env
+FROM registry.redhat.io/ubi9/go-toolset:9.7 AS build-env
 
 ENV GOEXPERIMENT=strictfipsruntime
 ENV CGO_ENABLED=1
@@ -14,15 +14,16 @@ RUN git stash && \
     export BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') && \
     git stash pop || true && \
     go mod download && \
+    LDFLAGS="-X sigs.k8s.io/release-utils/version.gitVersion=${GIT_VERSION} \
+                   -X sigs.k8s.io/release-utils/version.gitCommit=${GIT_HASH} \
+                   -X sigs.k8s.io/release-utils/version.gitTreeState="clean" \
+                   -X sigs.k8s.io/release-utils/version.buildDate=${BUILD_DATE}"; \
+    go build -mod=readonly -o gitsign_cli_linux -trimpath -ldflags "${LDFLAGS} -w -s" . && \
+    gzip -k gitsign_cli_linux && \
     make -f Build.mak cross-platform && \
     gzip gitsign_cli_darwin_amd64 && \
-    gzip gitsign_cli_linux_amd64 && \
     gzip gitsign_cli_windows_amd64.exe && \
-    gzip gitsign_cli_darwin_arm64 && \
-    gzip gitsign_cli_linux_arm64 && \
-    gzip gitsign_cli_linux_ppc64le && \
-    gzip gitsign_cli_linux_s390x && \
-    ls -la
+    gzip gitsign_cli_darwin_arm64
 
 # Install Gitsign
 FROM registry.access.redhat.com/ubi9-minimal@sha256:61d5ad475048c2e655cd46d0a55dfeaec182cc3faa6348cb85989a7c9e196483
@@ -35,29 +36,21 @@ LABEL summary="Provides the gitsign CLI binary for signing and verifying contain
 LABEL com.redhat.component="gitsign"
 LABEL name="rhtas/gitsign-rhel9"
 
+COPY --from=build-env /gitsign/gitsign_cli_linux /usr/local/bin/gitsign_cli_linux
+COPY --from=build-env /gitsign/gitsign_cli_linux.gz /usr/local/bin/gitsign_cli_linux.gz
 COPY --from=build-env /gitsign/gitsign_cli_darwin_amd64.gz /usr/local/bin/gitsign_cli_darwin_amd64.gz
-COPY --from=build-env /gitsign/gitsign_cli_linux_amd64.gz /usr/local/bin/gitsign_cli_linux_amd64.gz
 COPY --from=build-env /gitsign/gitsign_cli_darwin_arm64.gz /usr/local/bin/gitsign_cli_darwin_arm64.gz
-COPY --from=build-env /gitsign/gitsign_cli_linux_arm64.gz /usr/local/bin/gitsign_cli_linux_arm64.gz
-COPY --from=build-env /gitsign/gitsign_cli_linux_ppc64le.gz /usr/local/bin/gitsign_cli_linux_ppc64le.gz
-COPY --from=build-env /gitsign/gitsign_cli_linux_s390x.gz /usr/local/bin/gitsign_cli_linux_s390x.gz
 COPY --from=build-env /gitsign/gitsign_cli_windows_amd64.exe.gz /usr/local/bin/gitsign_cli_windows_amd64.exe.gz
 COPY LICENSE /licenses/license.txt
-
 
 ENV HOME=/home
 WORKDIR ${HOME}
 
 RUN chown root:0 /usr/local/bin/gitsign_cli_darwin_amd64.gz && chmod g+wx /usr/local/bin/gitsign_cli_darwin_amd64.gz && \
-    chown root:0 /usr/local/bin/gitsign_cli_linux_amd64.gz && chmod g+wx /usr/local/bin/gitsign_cli_linux_amd64.gz && \
     chown root:0 /usr/local/bin/gitsign_cli_windows_amd64.exe.gz && chmod g+wx /usr/local/bin/gitsign_cli_windows_amd64.exe.gz && \
-    chown root:0 /usr/local/bin/gitsign_cli_linux_arm64.gz && chmod g+wx /usr/local/bin/gitsign_cli_linux_arm64.gz && \
     chown root:0 /usr/local/bin/gitsign_cli_darwin_arm64.gz && chmod g+wx /usr/local/bin/gitsign_cli_darwin_arm64.gz && \
-    chown root:0 /usr/local/bin/gitsign_cli_linux_ppc64le.gz && chmod g+wx /usr/local/bin/gitsign_cli_linux_ppc64le.gz && \
-    chown root:0 /usr/local/bin/gitsign_cli_linux_s390x.gz && chmod g+wx /usr/local/bin/gitsign_cli_linux_s390x.gz && \
+    chown root:0 /usr/local/bin/gitsign_cli_linux.gz && chmod g+wx /usr/local/bin/gitsign_cli_linux.gz && \
     chgrp -R 0 /${HOME} && chmod -R g=u /${HOME}
-
-LABEL com.redhat.component="gitsign"
 
 USER 65532:65532
 
