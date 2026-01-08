@@ -25,7 +25,7 @@ import (
 	verifytag "github.com/sigstore/gitsign/internal/commands/verify-tag"
 	"github.com/sigstore/gitsign/internal/commands/version"
 	"github.com/sigstore/gitsign/internal/config"
-	"github.com/sigstore/gitsign/internal/io"
+	"github.com/sigstore/gitsign/internal/streams"
 )
 
 type options struct {
@@ -66,7 +66,7 @@ func New(cfg *config.Config) *cobra.Command {
 		Args:              cobra.ArbitraryArgs,
 		DisableAutoGenTag: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			s := io.New(o.Config.LogPath)
+			s := streams.New(o.Config.LogPath)
 			defer s.Close()
 			return s.Wrap(func() error {
 				switch {
