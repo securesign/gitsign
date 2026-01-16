@@ -10,7 +10,7 @@ metadata:
       == "main"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: cli
+    appstudio.openshift.io/application: tas-tools
     appstudio.openshift.io/component: gitsign
     pipelines.appstudio.openshift.io/type: build
   name: gitsign-on-push
