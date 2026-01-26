@@ -26,7 +26,7 @@ import (
 	"github.com/sigstore/gitsign/internal/fulcio"
 	"github.com/sigstore/gitsign/internal/git"
 	"github.com/sigstore/gitsign/internal/gpg"
-	gsio "github.com/sigstore/gitsign/internal/io"
+	"github.com/sigstore/gitsign/internal/streams"
 	"github.com/sigstore/gitsign/internal/rekor"
 	"github.com/sigstore/gitsign/internal/signature"
 )
@@ -34,7 +34,7 @@ import (
 // commandSign implements gitsign commit signing.
 // This is implemented as a root command so that user can specify the
 // gitsign binary directly in their gitconfigs.
-func commandSign(o *options, s *gsio.Streams, args ...string) error {
+func commandSign(o *options, s *streams.Streams, args ...string) error {
 	ctx := context.Background()
 
 	// Flag validation
