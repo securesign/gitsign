@@ -26,13 +26,13 @@ import (
 	"github.com/sigstore/gitsign/internal/commands/verify"
 	"github.com/sigstore/gitsign/internal/gitsign"
 	"github.com/sigstore/gitsign/internal/gpg"
-	gsio "github.com/sigstore/gitsign/internal/io"
+	"github.com/sigstore/gitsign/internal/streams"
 )
 
 // commandSign implements gitsign commit verification.
 // This is implemented as a root command so that user can specify the
 // gitsign binary directly in their gitconfigs.
-func commandVerify(o *options, s *gsio.Streams, args ...string) error {
+func commandVerify(o *options, s *streams.Streams, args ...string) error {
 	ctx := context.Background()
 
 	// Flag validation
@@ -91,7 +91,7 @@ func commandVerify(o *options, s *gsio.Streams, args ...string) error {
 	return nil
 }
 
-func readAttached(s *gsio.Streams, args ...string) ([]byte, error) {
+func readAttached(s *streams.Streams, args ...string) ([]byte, error) {
 	var (
 		f   io.Reader
 		err error
@@ -117,7 +117,7 @@ func readAttached(s *gsio.Streams, args ...string) ([]byte, error) {
 	return sig.Bytes(), nil
 }
 
-func readDetached(s *gsio.Streams, args ...string) ([]byte, []byte, error) {
+func readDetached(s *streams.Streams, args ...string) ([]byte, []byte, error) {
 	// Read in signature
 	sigFile, err := os.Open(args[0])
 	if err != nil {
