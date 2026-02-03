@@ -2,9 +2,9 @@ name: Verify
 
 on:
   push:
-    branches: ["main"]
+    branches: ["release-1.2"]
   pull_request:
-    branches: ["main"]
+    branches: ["release-1.2"]
 
 permissions:
   contents: read
