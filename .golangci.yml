@@ -31,10 +31,18 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: package golang.org/x/crypto/openpgp'
+      - linters:
+          - staticcheck
+        text: 'SA1019: swag\.'
+      - linters:
+          - staticcheck
+        text: 'SA1019: in_toto\.'
+      - linters:
+          - gocritic
+        text: 'deprecatedComment'
     paths:
       - internal/fork
       - third_party$
-      - builtin$
       - examples$
 issues:
   max-issues-per-linter: 0
@@ -48,5 +56,4 @@ formatters:
     paths:
       - internal/fork
       - third_party$
-      - builtin$
       - examples$

@@ -26,9 +26,9 @@ import (
 	"github.com/sigstore/gitsign/internal/fulcio"
 	"github.com/sigstore/gitsign/internal/git"
 	"github.com/sigstore/gitsign/internal/gpg"
-	"github.com/sigstore/gitsign/internal/streams"
 	"github.com/sigstore/gitsign/internal/rekor"
 	"github.com/sigstore/gitsign/internal/signature"
+	"github.com/sigstore/gitsign/internal/streams"
 )
 
 // commandSign implements gitsign commit signing.
