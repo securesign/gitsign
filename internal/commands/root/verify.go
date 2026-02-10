@@ -26,13 +26,13 @@ import (
 	"github.com/sigstore/gitsign/internal/commands/verify"
 	"github.com/sigstore/gitsign/internal/gitsign"
 	"github.com/sigstore/gitsign/internal/gpg"
-	"github.com/sigstore/gitsign/internal/streams"
+	gsio "github.com/sigstore/gitsign/internal/io"
 )
 
 // commandSign implements gitsign commit verification.
 // This is implemented as a root command so that user can specify the
 // gitsign binary directly in their gitconfigs.
-func commandVerify(o *options, s *streams.Streams, args ...string) error {
+func commandVerify(o *options, s *gsio.Streams, args ...string) error {
 	ctx := context.Background()
 
 	// Flag validation
@@ -83,7 +83,7 @@ func commandVerify(o *options, s *streams.Streams, args ...string) error {
 	}
 
 	verify.PrintSummary(s.Err, summary)
-	fmt.Fprintln(s.Err, "WARNING: git verify-commit does not verify cert claims. Prefer using `gitsign verify` instead.")
+	fmt.Fprintln(s.Err, "WARNING: git verify-commit does not verify cert claims. Prefer using `gitsign verify` instead.") // nolint:errcheck
 
 	gpgout.EmitGoodSig(summary.Cert)
 	gpgout.EmitTrustFully()
@@ -91,7 +91,7 @@ func commandVerify(o *options, s *streams.Streams, args ...string) error {
 	return nil
 }
 
-func readAttached(s *streams.Streams, args ...string) ([]byte, error) {
+func readAttached(s *gsio.Streams, args ...string) ([]byte, error) {
 	var (
 		f   io.Reader
 		err error
@@ -103,7 +103,7 @@ func readAttached(s *streams.Streams, args ...string) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to open signature file (%s): %w", args[0], err)
 		}
-		defer f2.Close()
+		defer f2.Close() // nolint:errcheck
 		f = f2
 	} else {
 		f = s.In
@@ -117,13 +117,13 @@ func readAttached(s *streams.Streams, args ...string) ([]byte, error) {
 	return sig.Bytes(), nil
 }
 
-func readDetached(s *streams.Streams, args ...string) ([]byte, []byte, error) {
+func readDetached(s *gsio.Streams, args ...string) ([]byte, []byte, error) {
 	// Read in signature
 	sigFile, err := os.Open(args[0])
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open signature file (%s): %w", args[0], err)
 	}
-	defer sigFile.Close()
+	defer sigFile.Close() // nolint:errcheck
 	sig := new(bytes.Buffer)
 	if _, err = io.Copy(sig, sigFile); err != nil {
 		return nil, nil, fmt.Errorf("failed to read signature file: %w", err)
@@ -138,7 +138,7 @@ func readDetached(s *streams.Streams, args ...string) ([]byte, []byte, error) {
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to open message file (%s): %w", args[1], err)
 		}
-		defer f2.Close()
+		defer f2.Close() // nolint:errcheck
 		dataFile = f2
 	}
 	buf := new(bytes.Buffer)

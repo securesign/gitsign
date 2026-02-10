@@ -28,13 +28,13 @@ import (
 	"github.com/sigstore/gitsign/internal/gpg"
 	"github.com/sigstore/gitsign/internal/rekor"
 	"github.com/sigstore/gitsign/internal/signature"
-	"github.com/sigstore/gitsign/internal/streams"
+	gsio "github.com/sigstore/gitsign/internal/io"
 )
 
 // commandSign implements gitsign commit signing.
 // This is implemented as a root command so that user can specify the
 // gitsign binary directly in their gitconfigs.
-func commandSign(o *options, s *streams.Streams, args ...string) error {
+func commandSign(o *options, s *gsio.Streams, args ...string) error {
 	ctx := context.Background()
 
 	// Flag validation
@@ -59,7 +59,7 @@ func commandSign(o *options, s *streams.Streams, args ...string) error {
 		if err != nil {
 			return fmt.Errorf("failed to open message file (%s): %w", args[0], err)
 		}
-		defer f2.Close()
+		defer f2.Close() // nolint:errcheck
 		f = f2
 	} else {
 		f = s.In
@@ -96,7 +96,7 @@ func commandSign(o *options, s *streams.Streams, args ...string) error {
 	}
 
 	if tlog := resp.LogEntry; tlog != nil && tlog.LogIndex != nil {
-		fmt.Fprintf(s.TTYOut, "tlog entry created with index: %d\n", *tlog.LogIndex)
+		fmt.Fprintf(s.TTYOut, "tlog entry created with index: %d\n", *tlog.LogIndex) // nolint:errcheck
 	}
 
 	gpgout.EmitSigCreated(resp.Cert, o.FlagDetachedSignature)

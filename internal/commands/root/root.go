@@ -16,6 +16,7 @@
 package root
 
 import (
+	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 
 	"github.com/sigstore/gitsign/internal/commands/attest"
@@ -25,7 +26,7 @@ import (
 	verifytag "github.com/sigstore/gitsign/internal/commands/verify-tag"
 	"github.com/sigstore/gitsign/internal/commands/version"
 	"github.com/sigstore/gitsign/internal/config"
-	"github.com/sigstore/gitsign/internal/streams"
+	"github.com/sigstore/gitsign/internal/io"
 )
 
 type options struct {
@@ -54,7 +55,7 @@ func (o *options) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().IntVar(&o.FlagStatusFD, "status-fd", -1, "write special status strings to the file descriptor n.")
 	cmd.Flags().IntVar(&o.FlagIncludeCerts, "include-certs", -2, "-3 is the same as -2, but omits issuer when cert has Authority Information Access extension. -2 includes all certs except root. -1 includes all certs. 0 includes no certs. 1 includes leaf cert. >1 includes n from the leaf. Default -2.")
 
-	cmd.Flags().MarkDeprecated("detached-sign", "--detached-sign has been deprecated in favor of --detach-sign to match the interface of other signing tools") //nolint:errcheck
+	cmd.Flags().MarkDeprecated("detached-sign", "--detached-sign has been deprecated in favor of --detach-sign to match the interface of other signing tools") // nolint:errcheck // nolint:gosec
 }
 
 func New(cfg *config.Config) *cobra.Command {
@@ -66,8 +67,13 @@ func New(cfg *config.Config) *cobra.Command {
 		Args:              cobra.ArbitraryArgs,
 		DisableAutoGenTag: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			s := streams.New(o.Config.LogPath)
+			s := io.New(o.Config.LogPath)
 			defer s.Close()
+
+			// Configure browser global stdout/stderr to make sure we don't pollute regular streams
+			browser.Stdout = s.TTYOut
+			browser.Stderr = s.TTYOut
+
 			return s.Wrap(func() error {
 				switch {
 				case o.FlagVersion:

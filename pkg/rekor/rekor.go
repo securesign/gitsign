@@ -28,9 +28,9 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/conv"
 
-	"github.com/sigstore/cosign/v2/pkg/cosign"
+	"github.com/sigstore/cosign/v3/pkg/cosign"
 	cms "github.com/sigstore/gitsign/internal/fork/ietf-cms"
 	rekoroid "github.com/sigstore/gitsign/internal/rekor/oid"
 	rekor "github.com/sigstore/rekor/pkg/client"
@@ -169,7 +169,7 @@ func (c *Client) findTLogEntriesByPK(ctx context.Context, pubKey []byte) (uuids 
 
 	params.Query.PublicKey = &models.SearchIndexPublicKey{
 		Content: strfmt.Base64(pubKey),
-		Format:  swag.String(models.SearchIndexPublicKeyFormatX509),
+		Format:  conv.Pointer(models.SearchIndexPublicKeyFormatX509),
 	}
 
 	searchIndex, err := c.Index.SearchIndex(params)
@@ -193,7 +193,11 @@ func (c *Client) Verify(ctx context.Context, commitSHA string, cert *x509.Certif
 	if err != nil {
 		return nil, err
 	}
-	return e, cosign.VerifyTLogEntryOffline(ctx, e, c.publicKeys)
+	tm, err := cosign.TrustedRoot()
+	if err != nil {
+		return nil, err
+	}
+	return e, cosign.VerifyTLogEntryOffline(ctx, e, c.publicKeys, tm)
 }
 
 // extractData extracts the data hash and certs from a given LogEntryAnon.
@@ -302,7 +306,11 @@ func (c *Client) VerifyInclusion(ctx context.Context, sig []byte, cert *x509.Cer
 		return nil, err
 	}
 
-	if err := cosign.VerifyTLogEntryOffline(ctx, tlog, c.PublicKeys()); err != nil {
+	tm, err := cosign.TrustedRoot()
+	if err != nil {
+		return nil, err
+	}
+	if err := cosign.VerifyTLogEntryOffline(ctx, tlog, c.PublicKeys(), tm); err != nil {
 		return nil, err
 	}
 

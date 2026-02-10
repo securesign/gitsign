@@ -34,8 +34,8 @@ import (
 	"github.com/go-openapi/strfmt"
 	spb "github.com/in-toto/attestation/go/v1"
 	"github.com/jonboulle/clockwork"
-	"github.com/sigstore/cosign/v2/cmd/cosign/cli/sign"
-	"github.com/sigstore/cosign/v2/pkg/types"
+	"github.com/sigstore/cosign/v3/cmd/cosign/cli/signcommon"
+	"github.com/sigstore/cosign/v3/pkg/types"
 	utils "github.com/sigstore/gitsign/internal"
 	gitsignconfig "github.com/sigstore/gitsign/internal/config"
 	rekorclient "github.com/sigstore/rekor/pkg/generated/client"
@@ -62,13 +62,13 @@ type rekorUpload func(ctx context.Context, rekorClient *rekorclient.Rekor, signa
 
 type Attestor struct {
 	repo       *git.Repository
-	sv         *sign.SignerVerifier
+	sv         *signcommon.SignerVerifier
 	rekorFn    rekorUpload
 	config     *gitsignconfig.Config
 	digestType string
 }
 
-func NewAttestor(repo *git.Repository, sv *sign.SignerVerifier, rekorFn rekorUpload, config *gitsignconfig.Config, digestType string) *Attestor {
+func NewAttestor(repo *git.Repository, sv *signcommon.SignerVerifier, rekorFn rekorUpload, config *gitsignconfig.Config, digestType string) *Attestor {
 	return &Attestor{
 		repo:       repo,
 		sv:         sv,
@@ -80,11 +80,11 @@ func NewAttestor(repo *git.Repository, sv *sign.SignerVerifier, rekorFn rekorUpl
 
 // WriteFile is a convenience wrapper around WriteAttestation that takes in a filepath rather than an io.Reader.
 func (a *Attestor) WriteFile(ctx context.Context, refName string, sha plumbing.Hash, path, attType string) (plumbing.Hash, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) // nolint:gosec
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
-	defer f.Close()
+	defer f.Close() // nolint:errcheck
 
 	return a.WriteAttestation(ctx, refName, sha, f, attType)
 }
