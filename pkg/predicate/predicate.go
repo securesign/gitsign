@@ -1,4 +1,4 @@
-// Copyright 2023 The Sigstore Authors
+// Copyright 2022 The Sigstore Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,22 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package api // nolint:revive
+package predicate
 
-import "github.com/sigstore/gitsign/internal/config"
-
-type Credential struct {
-	PrivateKey []byte
-	Cert       []byte
-	Chain      []byte
-}
-
-type StoreCredentialRequest struct {
-	ID         string
-	Credential *Credential
-}
-
-type GetCredentialRequest struct {
-	ID     string
-	Config *config.Config
-}
+const (
+	TypeV01 = "https://gitsign.sigstore.dev/predicate/git/v0.1"
+)

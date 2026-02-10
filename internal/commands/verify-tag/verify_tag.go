@@ -23,7 +23,7 @@ import (
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	cosignopts "github.com/sigstore/cosign/v2/cmd/cosign/cli/options"
+	cosignopts "github.com/sigstore/cosign/v3/cmd/cosign/cli/options"
 	"github.com/sigstore/gitsign/internal/commands/verify"
 	"github.com/sigstore/gitsign/internal/config"
 	"github.com/sigstore/gitsign/internal/gitsign"
@@ -81,7 +81,7 @@ func (o *options) Run(_ io.Writer, args []string) error {
 	if err != nil {
 		return err
 	}
-	defer r.Close()
+	defer r.Close() // nolint:errcheck
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return err

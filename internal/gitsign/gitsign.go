@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"os"
 
-	cosignopts "github.com/sigstore/cosign/v2/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/v2/pkg/cosign"
+	cosignopts "github.com/sigstore/cosign/v3/cmd/cosign/cli/options"
+	"github.com/sigstore/cosign/v3/pkg/cosign"
 	"github.com/sigstore/gitsign/internal/cert"
 	"github.com/sigstore/gitsign/internal/config"
 	"github.com/sigstore/gitsign/internal/fulcio/fulcioroots"
@@ -51,11 +51,11 @@ func NewVerifierWithCosignOpts(ctx context.Context, cfg *config.Config, opts *co
 		return nil, fmt.Errorf("error getting system root pool: %w", err)
 	}
 	if path := cfg.TimestampCert; path != "" {
-		f, err := os.Open(path)
+		f, err := os.Open(path) // nolint:gosec
 		if err != nil {
 			return nil, err
 		}
-		defer f.Close()
+		defer f.Close() // nolint:errcheck
 		cert, err := cryptoutils.LoadCertificatesFromPEM(f)
 		if err != nil {
 			return nil, fmt.Errorf("error loading certs from %s: %w", path, err)

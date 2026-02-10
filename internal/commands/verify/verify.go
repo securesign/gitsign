@@ -23,8 +23,8 @@ import (
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	cosignopts "github.com/sigstore/cosign/v2/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/v2/pkg/cosign"
+	cosignopts "github.com/sigstore/cosign/v3/cmd/cosign/cli/options"
+	"github.com/sigstore/cosign/v3/pkg/cosign"
 	"github.com/sigstore/gitsign/internal"
 	"github.com/sigstore/gitsign/internal/config"
 	"github.com/sigstore/gitsign/internal/gitsign"
@@ -79,7 +79,7 @@ func (o *options) Run(_ io.Writer, args []string) error {
 	if err != nil {
 		return err
 	}
-	defer r.Close()
+	defer r.Close() // nolint:errcheck
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return err
@@ -102,14 +102,14 @@ func (o *options) Run(_ io.Writer, args []string) error {
 func PrintSummary(w io.Writer, summary *git.VerificationSummary) {
 	fpr := internal.CertHexFingerprint(summary.Cert)
 
-	fmt.Fprintln(w, "tlog index:", *summary.LogEntry.LogIndex)
-	fmt.Fprintf(w, "gitsign: Signature made using certificate ID 0x%s | %v\n", fpr, summary.Cert.Issuer)
+	fmt.Fprintln(w, "tlog index:", *summary.LogEntry.LogIndex)                                           // nolint:errcheck
+	fmt.Fprintf(w, "gitsign: Signature made using certificate ID 0x%s | %v\n", fpr, summary.Cert.Issuer) // nolint:errcheck
 
 	ce := cosign.CertExtensions{Cert: summary.Cert}
-	fmt.Fprintf(w, "gitsign: Good signature from %v(%s)\n", cryptoutils.GetSubjectAlternateNames(summary.Cert), ce.GetIssuer())
+	fmt.Fprintf(w, "gitsign: Good signature from %v(%s)\n", cryptoutils.GetSubjectAlternateNames(summary.Cert), ce.GetIssuer()) // nolint:errcheck
 
 	for _, c := range summary.Claims {
-		fmt.Fprintf(w, "%s: %t\n", string(c.Key), c.Value)
+		fmt.Fprintf(w, "%s: %t\n", string(c.Key), c.Value) // nolint:errcheck
 	}
 }
 
