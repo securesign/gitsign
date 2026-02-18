@@ -142,7 +142,11 @@ func NewStatusWriter(w io.Writer) *StatusWriter {
 	}
 }
 
-func NewStatusWriterFromFD(fd uintptr) *StatusWriter {
+func NewStatusWriterFromFD(fd int) *StatusWriter {
+	if fd < 0 {
+		return NewStatusWriter(io.Discard)
+	}
+
 	const (
 		unixStdout = 1
 		unixStderr = 2
@@ -157,8 +161,7 @@ func NewStatusWriterFromFD(fd uintptr) *StatusWriter {
 	case unixStderr:
 		statusFile = os.Stderr
 	default:
-		// TODO: debugging output if this fails
-		statusFile = os.NewFile(fd, "status")
+		statusFile = os.NewFile(uintptr(fd), "status")
 	}
 
 	return NewStatusWriter(statusFile)
