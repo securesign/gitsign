@@ -29,11 +29,18 @@ import (
 	sigstoretuf "github.com/sigstore/sigstore/pkg/tuf"
 )
 
-// TUFOptions returns sigstore-go TUF options, reading the mirror URL from remote.json if available.
+// TUFOptions returns sigstore-go TUF options, reading the mirror URL and
+// cached root.json from the local TUF cache when a custom mirror is configured.
 func TUFOptions() *tuf.Options {
 	opts := tuf.DefaultOptions()
 	if mirror, err := readRemoteHint(opts.CachePath); err == nil && mirror != "" {
 		opts.RepositoryBaseURL = mirror
+	}
+	if opts.RepositoryBaseURL != tuf.DefaultMirror {
+		cachedRoot := filepath.Join(opts.CachePath, tuf.URLToPath(opts.RepositoryBaseURL), "root.json")
+		if rootBytes, err := os.ReadFile(cachedRoot); err == nil {
+			opts.Root = rootBytes
+		}
 	}
 	return opts
 }
