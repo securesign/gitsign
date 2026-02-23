@@ -25,6 +25,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/sigstore/gitsign/internal/sigstoreroot"
 )
 
 type RekorVerificationMode int
@@ -38,6 +40,9 @@ var (
 	// execFn is a function to get the raw git config.
 	// Configurable to allow for overriding for testing.
 	execFn = realExec
+
+	// getSigningConfigFn allows overriding for tests.
+	getSigningConfigFn = sigstoreroot.GetSigningConfig
 )
 
 // Config represents configuration options for gitsign.
@@ -131,10 +136,27 @@ func Get() (*Config, error) {
 		AutocloseTimeout: 6,
 	}
 
+	// Check if TUF cache has a signing config - if so, use those values
+	signingConfig, _ := getSigningConfigFn()
+	useTUFConfig := signingConfig != nil
+
+	if useTUFConfig {
+		if signingConfig.FulcioURL != "" {
+			out.Fulcio = signingConfig.FulcioURL
+		}
+		if signingConfig.RekorURL != "" {
+			out.Rekor = signingConfig.RekorURL
+		}
+		if signingConfig.OIDCURL != "" {
+			out.Issuer = signingConfig.OIDCURL
+		}
+		if signingConfig.TimestampURL != "" {
+			out.TimestampURL = signingConfig.TimestampURL
+		}
+	}
+
 	// Get values from config file.
 	applyGitOptions(out, cfg)
-
-	// Get values from env vars.
 
 	// Same as GITSIGN_FULCIO_ROOT, but using legacy cosign value for compatibility.
 	// Long term we're likely going to be moving away from this.
@@ -143,20 +165,41 @@ func Get() (*Config, error) {
 
 	// Check for common environment variables that could be shared with other
 	// Sigstore tools. Gitsign envs should take precedence.
+	// Track if service URL env vars override TUF config.
+	serviceURLEnvSet := false
 	for _, prefix := range []string{"SIGSTORE", "GITSIGN"} {
-		out.Fulcio = envOrValue(fmt.Sprintf("%s_FULCIO_URL", prefix), out.Fulcio)
+		if v, ok := os.LookupEnv(fmt.Sprintf("%s_FULCIO_URL", prefix)); ok {
+			out.Fulcio = v
+			serviceURLEnvSet = true
+		}
 		out.FulcioRoot = envOrValue(fmt.Sprintf("%s_FULCIO_ROOT", prefix), out.FulcioRoot)
-		out.Rekor = envOrValue(fmt.Sprintf("%s_REKOR_URL", prefix), out.Rekor)
+		if v, ok := os.LookupEnv(fmt.Sprintf("%s_REKOR_URL", prefix)); ok {
+			out.Rekor = v
+			serviceURLEnvSet = true
+		}
 		out.ClientID = envOrValue(fmt.Sprintf("%s_OIDC_CLIENT_ID", prefix), out.ClientID)
 		out.clientSecretFile = envOrValue(fmt.Sprintf("%s_OIDC_CLIENT_SECRET_FILE", prefix), out.clientSecretFile)
 		out.RedirectURL = envOrValue(fmt.Sprintf("%s_OIDC_REDIRECT_URL", prefix), out.RedirectURL)
-		out.Issuer = envOrValue(fmt.Sprintf("%s_OIDC_ISSUER", prefix), out.Issuer)
+		if v, ok := os.LookupEnv(fmt.Sprintf("%s_OIDC_ISSUER", prefix)); ok {
+			out.Issuer = v
+			serviceURLEnvSet = true
+		}
 		out.ConnectorID = envOrValue(fmt.Sprintf("%s_CONNECTOR_ID", prefix), out.ConnectorID)
 		out.TokenProvider = envOrValue(fmt.Sprintf("%s_TOKEN_PROVIDER", prefix), out.TokenProvider)
-		out.TimestampURL = envOrValue(fmt.Sprintf("%s_TIMESTAMP_SERVER_URL", prefix), out.TimestampURL)
+		if v, ok := os.LookupEnv(fmt.Sprintf("%s_TIMESTAMP_SERVER_URL", prefix)); ok {
+			out.TimestampURL = v
+			serviceURLEnvSet = true
+		}
 		out.TimestampCert = envOrValue(fmt.Sprintf("%s_TIMESTAMP_CERT_CHAIN", prefix), out.TimestampCert)
 		out.Autoclose = envOrValue(fmt.Sprintf("%s_AUTOCLOSE", prefix), fmt.Sprintf("%t", out.Autoclose)) == "true"
 		out.AutocloseTimeout, _ = strconv.Atoi(envOrValue(fmt.Sprintf("%s_AUTOCLOSE_TIMEOUT", prefix), fmt.Sprintf("%d", out.AutocloseTimeout)))
+	}
+
+	if useTUFConfig && serviceURLEnvSet {
+		log.Printf("WARNING: Both TUF signing config and environment variables are set. " +
+			"Environment variables will take precedence. To use the TUF signing config from " +
+			"'gitsign initialize', unset GITSIGN_FULCIO_URL, GITSIGN_REKOR_URL, GITSIGN_OIDC_ISSUER, " +
+			"and related environment variables.")
 	}
 
 	out.LogPath = envOrValue("GITSIGN_LOG", out.LogPath)
