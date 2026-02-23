@@ -42,7 +42,18 @@ type Verifier struct {
 // Note: not all options are supported.
 //   - cert: This is always taken from the commit.
 func NewVerifierWithCosignOpts(ctx context.Context, cfg *config.Config, opts *cosignopts.CertVerifyOptions) (*Verifier, error) {
-	root, intermediate, err := fulcioroots.NewFromConfig(ctx, cfg)
+	trustedRoot, err := sigstoreroot.FetchTrustedRoot()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching trusted root: %w", err)
+	}
+
+	// Load Fulcio roots - use file if specified, otherwise use trusted root
+	var root, intermediate *x509.CertPool
+	if cfg.FulcioRoot != "" {
+		root, intermediate, err = fulcioroots.New(x509.NewCertPool(), fulcioroots.FromFile(cfg.FulcioRoot))
+	} else {
+		root, intermediate, err = fulcioroots.New(x509.NewCertPool(), fulcioroots.FromTrustedRoot(trustedRoot))
+	}
 	if err != nil {
 		return nil, fmt.Errorf("error getting certificate root: %w", err)
 	}
@@ -50,6 +61,13 @@ func NewVerifierWithCosignOpts(ctx context.Context, cfg *config.Config, opts *co
 	tsa, err := x509.SystemCertPool()
 	if err != nil {
 		return nil, fmt.Errorf("error getting system root pool: %w", err)
+	}
+	tsaCerts, err := sigstoreroot.GetTSACertificates(trustedRoot)
+	if err != nil {
+		return nil, fmt.Errorf("error getting TSA certificates from trusted root: %w", err)
+	}
+	for _, c := range tsaCerts {
+		tsa.AddCert(c)
 	}
 	if path := cfg.TimestampCert; path != "" {
 		f, err := os.Open(path) // nolint:gosec
@@ -87,10 +105,6 @@ func NewVerifierWithCosignOpts(ctx context.Context, cfg *config.Config, opts *co
 	// and warn if missing.
 	var certverifier cert.Verifier
 	if opts != nil {
-		trustedRoot, err := sigstoreroot.FetchTrustedRoot()
-		if err != nil {
-			return nil, fmt.Errorf("error fetching trusted root: %w", err)
-		}
 		ctpub, err := sigstoreroot.GetCTLogPubs(trustedRoot)
 		if err != nil {
 			return nil, fmt.Errorf("error getting CT log public key: %w", err)

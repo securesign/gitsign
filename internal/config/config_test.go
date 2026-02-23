@@ -25,9 +25,15 @@ import (
 	format "github.com/go-git/go-git/v5/plumbing/format/config"
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/google/go-cmp/cmp"
+	"github.com/sigstore/gitsign/internal/sigstoreroot"
 )
 
 func TestGet(t *testing.T) {
+	// Disable TUF signing config lookup for this test
+	oldGetSigningConfigFn := getSigningConfigFn
+	getSigningConfigFn = func() (*sigstoreroot.SigningConfig, error) { return nil, nil }
+	defer func() { getSigningConfigFn = oldGetSigningConfigFn }()
+
 	// Create in-memory repo for testing.
 	repo, err := git.Init(memory.NewStorage(), memfs.New())
 	if err != nil {
