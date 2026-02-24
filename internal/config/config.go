@@ -150,9 +150,6 @@ func Get() (*Config, error) {
 		if signingConfig.OIDCURL != "" {
 			out.Issuer = signingConfig.OIDCURL
 		}
-		if signingConfig.TimestampURL != "" {
-			out.TimestampURL = signingConfig.TimestampURL
-		}
 	}
 
 	// Get values from config file.
