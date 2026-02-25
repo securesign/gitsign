@@ -18,7 +18,7 @@ metadata:
 spec:
   params:
   - name: release-version
-    value: 1.2.2
+    value: 1.2.3
   - name: dockerfile
     value: Dockerfile.gitsign.rh
   - name: git-url
