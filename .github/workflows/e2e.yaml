@@ -2,9 +2,9 @@ name: E2E
 
 on:
   push:
-    branches: ["main"]
+    branches: ["release-1.3"]
   pull_request:
-    branches: ["main"]
+    branches: ["release-1.3"]
   workflow_dispatch:
 
 jobs:
