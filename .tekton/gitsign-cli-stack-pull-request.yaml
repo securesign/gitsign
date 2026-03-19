@@ -46,7 +46,7 @@ spec:
       value: pipelines/docker-build-oci-ta.yaml
     resolver: git
   taskRunTemplate:
-    serviceAccountName: build-pipeline-gitsign
+    serviceAccountName: build-pipeline-gitsign-cli-stack
   workspaces:
   - name: git-auth
     secret:
