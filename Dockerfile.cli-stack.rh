@@ -1,26 +1,13 @@
-# Flat aggregation image for gitsign CLI binaries across all platforms.
-# Pulls each platform variant from the existing gitsign runtime manifest list
-# and repackages all binaries as .tar.gz archives in a single flat image.
-#
-# Build: docker-build-oci-ta (single platform, amd64)
-# Source: gitsign runtime multi-arch image (injected via GITSIGN_IMAGE ARG)
-#
-# GITSIGN_IMAGE is managed by the Konflux nudge mechanism:
-# When the gitsign runtime component rebuilds, Konflux opens a PR updating
-# the default value below with the new image digest.
+FROM --platform=linux/amd64   quay.io/securesign/gitsign@sha256:860e4056d7f89d6bd09322025949a7f1affa65cd63fcfbed287c8ca6a91df2a6 AS build-amd64
+FROM --platform=linux/arm64   quay.io/securesign/gitsign@sha256:81f74efe5b8f138aad06ebbdff1d71969cf0e2affd7d5c0758dec097a6196db9 AS build-arm64
+FROM --platform=linux/ppc64le quay.io/securesign/gitsign@sha256:4b5cbbbc65848434415e8580c4733337ce77aea44ed034456a6692237a2ef9d3 AS build-ppc64le
+FROM --platform=linux/s390x   quay.io/securesign/gitsign@sha256:e751351b44dfd23ad883010263d45ad1fac2640597bd8b83c0dee2795438a985 AS build-s390x
 
-ARG GITSIGN_IMAGE=quay.io/securesign/gitsign@sha256:582d9239bbfcad86a6927c9f69b01d8738c0f268aec9d0b00d913f2071f11a28
-FROM --platform=linux/amd64 ${GITSIGN_IMAGE} AS build-amd64
-FROM --platform=linux/arm64 ${GITSIGN_IMAGE} AS build-arm64
-FROM --platform=linux/ppc64le ${GITSIGN_IMAGE} AS build-ppc64le
-FROM --platform=linux/s390x ${GITSIGN_IMAGE} AS build-s390x
-
-FROM registry.redhat.io/ubi9/ubi-minimal@sha256:69f5c9886ecb19b23e88275a5cd904c47dd982dfa370fbbd0c356d7b1047ef68 AS packager
-
+FROM registry.redhat.io/ubi9/go-toolset:9.7@sha256:799cc027d5ad58cdc156b65286eb6389993ec14c496cf748c09834b7251e78dc AS packager
+USER root
 RUN mkdir -p /binaries
 
 # Native Linux binaries from each arch variant
-# Decompress gzip from runtime image, recompress as tar.gz for RPA compatibility
 COPY --from=build-amd64 /usr/local/bin/gitsign_cli_linux.gz /tmp/gitsign_cli_linux.gz
 RUN gzip -d /tmp/gitsign_cli_linux.gz && \
     tar -czf /binaries/gitsign_cli_linux_amd64.tar.gz -C /tmp gitsign_cli_linux && \
@@ -41,8 +28,6 @@ RUN gzip -d /tmp/gitsign_cli_linux.gz && \
     tar -czf /binaries/gitsign_cli_linux_s390x.tar.gz -C /tmp gitsign_cli_linux && \
     rm /tmp/gitsign_cli_linux
 
-# Cross-compiled binaries (same across all variants, taken from amd64)
-# Decompress gzip, recompress as tar.gz
 # Darwin amd64
 COPY --from=build-amd64 /usr/local/bin/gitsign_cli_darwin_amd64.gz /tmp/gitsign_cli_darwin_amd64.gz
 RUN gzip -d /tmp/gitsign_cli_darwin_amd64.gz && \
@@ -74,3 +59,7 @@ LABEL com.redhat.component="gitsign-cli-stack"
 
 COPY --from=packager /binaries/ /binaries/
 COPY --from=build-amd64 /licenses/ /licenses/
+
+RUN chown -R root:0 /binaries && chmod -R g+r /binaries
+
+USER 65532:65532
