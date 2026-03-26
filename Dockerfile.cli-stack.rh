@@ -3,7 +3,7 @@ FROM --platform=linux/arm64   quay.io/securesign/gitsign@sha256:512c2eba69e9f3ee
 FROM --platform=linux/ppc64le quay.io/securesign/gitsign@sha256:9b65a12eb7b5767b8b485f1dd69f59141521705ce66ef301cc21a568d1a3b0be AS build-ppc64le
 FROM --platform=linux/s390x   quay.io/securesign/gitsign@sha256:b8bc22bc44a99bc7444a9bbd7e85440f272eda5bdf470df580429bfe9c17fdaf AS build-s390x
 
-FROM registry.redhat.io/ubi9/go-toolset:9.7@sha256:799cc027d5ad58cdc156b65286eb6389993ec14c496cf748c09834b7251e78dc AS packager
+FROM registry.redhat.io/ubi9/go-toolset:9.7-1774499506@sha256:2830e4bd1c394ed506c00a9abbb4d00445e2e72e8ef4e3cd51e0da0db66dee12 AS packager
 USER root
 RUN mkdir -p /binaries
 
@@ -47,7 +47,7 @@ RUN gzip -d /tmp/gitsign_cli_windows_amd64.exe.gz && \
     rm /tmp/gitsign_cli_windows_amd64.exe
 
 # Final minimal image with all binaries
-FROM registry.redhat.io/ubi9/ubi-minimal@sha256:69f5c9886ecb19b23e88275a5cd904c47dd982dfa370fbbd0c356d7b1047ef68
+FROM registry.redhat.io/ubi9/ubi-minimal@sha256:83006d535923fcf1345067873524a3980316f51794f01d8655be55d6e9387183
 
 LABEL description="Flat image containing gitsign CLI binaries for all platforms and architectures"
 LABEL io.k8s.description="Flat image containing gitsign CLI binaries for all platforms and architectures"
