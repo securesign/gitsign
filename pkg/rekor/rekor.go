@@ -28,8 +28,7 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
-
+	"github.com/go-openapi/swag/conv"
 	"github.com/sigstore/cosign/v2/pkg/cosign"
 	cms "github.com/sigstore/gitsign/internal/fork/ietf-cms"
 	rekoroid "github.com/sigstore/gitsign/internal/rekor/oid"
@@ -169,7 +168,7 @@ func (c *Client) findTLogEntriesByPK(ctx context.Context, pubKey []byte) (uuids 
 
 	params.Query.PublicKey = &models.SearchIndexPublicKey{
 		Content: strfmt.Base64(pubKey),
-		Format:  swag.String(models.SearchIndexPublicKeyFormatX509),
+		Format:  conv.Pointer(models.SearchIndexPublicKeyFormatX509),
 	}
 
 	searchIndex, err := c.Index.SearchIndex(params)
