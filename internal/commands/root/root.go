@@ -17,6 +17,7 @@ package root
 
 import (
 	"github.com/spf13/cobra"
+	
 	"github.com/sigstore/gitsign/internal/commands/attest"
 	"github.com/sigstore/gitsign/internal/commands/initialize"
 	"github.com/sigstore/gitsign/internal/commands/show"
