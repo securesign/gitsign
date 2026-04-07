@@ -113,7 +113,7 @@ func ToAttributes(tlog *models.LogEntryAnon) (protocol.Attributes, error) {
 		return nil, err
 	}
 
-	attrs := make(protocol.Attributes, 2)
+	attrs := protocol.Attributes{} //nolint:errcheck
 	attr, err := protocol.NewAttribute(OIDRekorTransparencyLogEntry, out)
 	if err != nil {
 		return nil, err
