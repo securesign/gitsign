@@ -74,15 +74,15 @@ func New(cfg *config.Config) *cobra.Command {
 					// Alias root --version with version subcommand
 					for _, item := range cmd.Commands() {
 						if item.Name() == "version" {
-								return item.RunE(item, cmd.Flags().Args())
+							return item.RunE(item, cmd.Flags().Args())
 						}
 					}
 				case o.FlagSign, o.FlagDetachedSignature:
-						return commandSign(o, s, args...)
+					return commandSign(o, s, args...)
 				case o.FlagVerify:
-						return commandVerify(o, s, args...)
+					return commandVerify(o, s, args...)
 				default:
-						return cmd.Help()
+					return cmd.Help()
 				}
 				return nil
 			})
