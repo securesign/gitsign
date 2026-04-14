@@ -8,7 +8,10 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main"
+      == "main" && ("cmd/***".pathChanged()
+      || "internal/***".pathChanged() || "pkg/***".pathChanged() || "Makefile".pathChanged()
+      || "Dockerfile.gitsign.rh".pathChanged() || "go.mod".pathChanged() || "go.sum".pathChanged()
+      || "main.go".pathChanged() || "trigger-konflux-builds.txt".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: tas-tools
