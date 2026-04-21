@@ -7,12 +7,11 @@ metadata:
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "release-1.4"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: cli-stacks
-    appstudio.openshift.io/component: gitsign-cli-stack
+    appstudio.openshift.io/application: cli-stacks-v1-4
+    appstudio.openshift.io/component: gitsign-cli-stack-v1-4
     pipelines.appstudio.openshift.io/type: build
   name: gitsign-cli-stack-on-push
   namespace: rhtas-tenant
@@ -44,7 +43,7 @@ spec:
       value: pipelines/docker-build-oci-ta.yaml
     resolver: git
   taskRunTemplate:
-    serviceAccountName: build-pipeline-gitsign-cli-stack
+    serviceAccountName: build-pipeline-gitsign-cli-stack-v1-4
   workspaces:
   - name: git-auth
     secret:

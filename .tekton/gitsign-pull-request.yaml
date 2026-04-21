@@ -7,12 +7,11 @@ metadata:
     build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "release-1.4"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: tas-tools
-    appstudio.openshift.io/component: gitsign
+    appstudio.openshift.io/application: tas-tools-v1-4
+    appstudio.openshift.io/component: gitsign-v1-4
     pipelines.appstudio.openshift.io/type: build
   name: gitsign-on-pull-request
   namespace: rhtas-tenant
@@ -67,7 +66,7 @@ spec:
           memory: 4Gi
       name: run-tests
   taskRunTemplate:
-    serviceAccountName: build-pipeline-gitsign
+    serviceAccountName: build-pipeline-gitsign-v1-4
   workspaces:
   - name: git-auth
     secret:
