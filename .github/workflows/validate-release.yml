@@ -3,7 +3,7 @@ name: validate-release
 on:
   pull_request:
     branches:
-      - "main"
+      - "release-1.4"
   workflow_dispatch:
 
 jobs:
