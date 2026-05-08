@@ -26,7 +26,7 @@ RUN git stash && \
     gzip gitsign_cli_darwin_arm64
 
 # Install Gitsign
-FROM registry.access.redhat.com/ubi9-minimal@sha256:83006d535923fcf1345067873524a3980316f51794f01d8655be55d6e9387183
+FROM registry.access.redhat.com/ubi9-minimal@sha256:fbae396c8a47549501221dc5de79359f2c8110be9bd611d4883518ee14f85d2c
 
 LABEL description="Gitsign is a source code signing tool that leverages simple, secure, and auditable signatures based on simple primitives and best practices."
 LABEL io.k8s.description="Gitsign is a source code signing tool that leverages simple, secure, and auditable signatures based on simple primitives and best practices."
