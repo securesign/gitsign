@@ -3,10 +3,10 @@ name: E2E
 on:
   push:
     branches:
-      - "main"
+      - "release-1.4"
   pull_request:
     branches:
-      - "main"
+      - "release-1.4"
   workflow_dispatch:
 
 permissions: {}
