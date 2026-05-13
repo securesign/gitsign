@@ -13,7 +13,7 @@ metadata:
     appstudio.openshift.io/application: cli-stacks-v1-4
     appstudio.openshift.io/component: gitsign-cli-stack-v1-4
     pipelines.appstudio.openshift.io/type: build
-  name: gitsign-cli-stack-on-push
+  name: gitsign-cli-stack-v1-4-on-push
   namespace: rhtas-tenant
 spec:
   params:
