@@ -13,7 +13,7 @@ RUN git stash && \
     git update-index --no-assume-unchanged Dockerfile.gitsign.rh
 
 # Install Gitsign
-FROM registry.access.redhat.com/ubi9-minimal@sha256:83006d535923fcf1345067873524a3980316f51794f01d8655be55d6e9387183
+FROM registry.access.redhat.com/ubi9-minimal@sha256:2a7e516b217a8e9d18021f40a061f22274d6d677d11e3e368a672827e149050d
 
 LABEL description="Gitsign is a source code signing tool that leverages simple, secure, and auditable signatures based on simple primitives and best practices."
 LABEL io.k8s.description="Gitsign is a source code signing tool that leverages simple, secure, and auditable signatures based on simple primitives and best practices."
