@@ -17,7 +17,11 @@ endif
 LDFLAGS=-buildid= -X github.com/sigstore/gitsign/pkg/version.gitVersion=$(GIT_VERSION)
 FIPS_MODULE ?= latest
 
-.PHONY: 
+.PHONY: gitsign-cli-linux
+gitsign-cli-linux: ## Build native Linux binary (FIPS, CGO)
+	env CGO_ENABLED=1 GOEXPERIMENT=strictfipsruntime go build -mod=readonly -o gitsign_cli_linux -trimpath -ldflags "$(LDFLAGS) -w -s" .
+
+.PHONY:
 cross-platform: gitsign-cli-darwin-arm64 gitsign-cli-darwin-amd64 gitsign-cli-windows ## Build all distributable (cross-platform) binaries
 
 .PHONY:	gitsign-cli-darwin-arm64
