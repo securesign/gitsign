@@ -53,7 +53,8 @@ jobs:
           gitsign -h
 
       - name: Get test OIDC token
-        uses: sigstore-conformance/extremely-dangerous-public-oidc-beacon@main
+        run: |
+          curl -sSfL https://storage.googleapis.com/sigstore-conformance-testing-token/untrusted-testing-token.txt -o oidc-token.txt
 
       - name: export OIDC token
         run: |
@@ -78,9 +79,8 @@ jobs:
 
           echo "========== gitsign verify =========="
           gitsign verify \
-            --certificate-github-workflow-repository="sigstore-conformance/extremely-dangerous-public-oidc-beacon" \
-            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
-            --certificate-identity="https://github.com/sigstore-conformance/extremely-dangerous-public-oidc-beacon/.github/workflows/extremely-dangerous-oidc-beacon.yml@refs/heads/main"
+            --certificate-oidc-issuer="https://accounts.google.com" \
+            --certificate-identity="untrusted-sa@sigstore-conformance.iam.gserviceaccount.com"
 
           # Extra debug info
           git cat-file commit HEAD | sed -n '/-BEGIN/, /-END/p' | sed 's/^ //g' | sed 's/gpgsig //g' | sed 's/SIGNED MESSAGE/PKCS7/g' | openssl pkcs7 -print -print_certs -text
@@ -101,9 +101,8 @@ jobs:
 
           echo "========== gitsign verify =========="
           gitsign verify \
-            --certificate-github-workflow-repository="sigstore-conformance/extremely-dangerous-public-oidc-beacon" \
-            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
-            --certificate-identity="https://github.com/sigstore-conformance/extremely-dangerous-public-oidc-beacon/.github/workflows/extremely-dangerous-oidc-beacon.yml@refs/heads/main"
+            --certificate-oidc-issuer="https://accounts.google.com" \
+            --certificate-identity="untrusted-sa@sigstore-conformance.iam.gserviceaccount.com"
 
           # Extra debug info
           git cat-file commit HEAD | sed -n '/-BEGIN/, /-END/p' | sed 's/^ //g' | sed 's/gpgsig //g' | sed 's/SIGNED MESSAGE/PKCS7/g' | openssl pkcs7 -print -print_certs -text
