@@ -1,4 +1,4 @@
-FROM registry.redhat.io/ubi9/go-toolset:9.7-1778604137@sha256:e06a6f4c85c3ca75f64127542449c9770fb885adfb592f987c576d268ac108de AS build-cross-platform
+FROM registry.redhat.io/ubi9/go-toolset:9.8-1782377916@sha256:17c888d75753f128f6cbdc5587932c3abd2632ca8e0931aa27b9a60c7a75ac62 AS build-cross-platform
 ENV APP_ROOT=/opt/app-root \
     GOPATH=/opt/app-root
 
@@ -18,7 +18,7 @@ FROM --platform=linux/arm64   quay.io/securesign/gitsign@sha256:482cd580642d2ba2
 FROM --platform=linux/ppc64le quay.io/securesign/gitsign@sha256:482cd580642d2ba2da727dec81c486e580e1e4c895749b59a3e96d30a47e79a8 AS build-ppc64le
 FROM --platform=linux/s390x   quay.io/securesign/gitsign@sha256:482cd580642d2ba2da727dec81c486e580e1e4c895749b59a3e96d30a47e79a8 AS build-s390x
 
-FROM registry.redhat.io/ubi9/go-toolset:9.7-1778604137@sha256:e06a6f4c85c3ca75f64127542449c9770fb885adfb592f987c576d268ac108de AS packager
+FROM registry.redhat.io/ubi9/go-toolset:9.8-1782377916@sha256:17c888d75753f128f6cbdc5587932c3abd2632ca8e0931aa27b9a60c7a75ac62 AS packager
 USER root
 RUN mkdir -p /binaries
 
@@ -55,7 +55,7 @@ RUN tar -czf /binaries/gitsign_cli_windows_amd64.tar.gz -C /tmp gitsign_cli_wind
 RUN chmod -R a+rX /binaries
 
 # Final minimal image with all binaries
-FROM registry.redhat.io/ubi9/ubi-micro:9.8@sha256:b498b3ea26111ab4b81d65139f2ebd2ef9a2abb7a4588b7fdcc54889f95e9caa
+FROM registry.redhat.io/ubi9/ubi-micro:9.8-1782363471@sha256:fdf68a4f5f88cca14ae906bbec6e0fbbffe92b5b91e73e0862c961234d63b986
 
 LABEL description="Flat image containing gitsign CLI binaries for all platforms and architectures"
 LABEL io.k8s.description="Flat image containing gitsign CLI binaries for all platforms and architectures"
