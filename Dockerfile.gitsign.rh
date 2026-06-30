@@ -1,5 +1,5 @@
 # Build stage
-FROM registry.redhat.io/ubi9/go-toolset:9.8-1782377916@sha256:17c888d75753f128f6cbdc5587932c3abd2632ca8e0931aa27b9a60c7a75ac62 AS build-env
+FROM registry.redhat.io/ubi9/go-toolset:9.8-1782736563@sha256:83cfd595f20e494cea9dc6526f217441e60bb9c5da85b33157c761e5f6a3d852 AS build-env
 
 WORKDIR /gitsign
 RUN git config --global --add safe.directory /gitsign
@@ -13,7 +13,7 @@ RUN git stash && \
     git update-index --no-assume-unchanged Dockerfile.gitsign.rh
 
 # Install Gitsign
-FROM registry.access.redhat.com/ubi9-minimal@sha256:c5478a52c410e71c53839923c83a1480199a1e74ce5736fe3e3a5578dc399102
+FROM registry.access.redhat.com/ubi9-minimal@sha256:463cae32c6f6f5594b11a5c22de275016bd8545ce58a6373388e8b24f13fc15c
 
 LABEL description="Gitsign is a source code signing tool that leverages simple, secure, and auditable signatures based on simple primitives and best practices."
 LABEL io.k8s.description="Gitsign is a source code signing tool that leverages simple, secure, and auditable signatures based on simple primitives and best practices."
