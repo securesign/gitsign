@@ -372,6 +372,14 @@ func NewMessageImprint(hash crypto.Hash, r io.Reader) (MessageImprint, error) {
 	if !hash.Available() {
 		return MessageImprint{}, protocol.ErrUnsupported
 	}
+
+	// RHTAS FIPS - DO NOT REMOVE
+	// ========================================
+	if err := checkFIPSHash(hash); err != nil {
+		return MessageImprint{}, err
+	}
+	// ========================================
+
 	h := hash.New()
 	if _, err := io.Copy(h, r); err != nil {
 		return MessageImprint{}, err

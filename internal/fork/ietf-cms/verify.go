@@ -93,6 +93,14 @@ func (sd *SignedData) verify(econtent []byte, opts x509.VerifyOptions, tsOpts x5
 			if err != nil {
 				return nil, err
 			}
+
+			// RHTAS FIPS - DO NOT REMOVE
+			// ========================================
+			if err := checkFIPSHash(hash); err != nil {
+				return nil, err
+			}
+			// ========================================
+
 			actualMessageDigest := hash.New()
 			if _, err = actualMessageDigest.Write(econtent); err != nil {
 				return nil, err

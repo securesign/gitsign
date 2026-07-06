@@ -23,15 +23,46 @@ import (
 	"os"
 	"time"
 
-	// TODO: this package is unmaintained except for security fixes.
-	// New applications should consider a more focused, modern alternative to OpenPGP for their specific task.
-	// If you are required to interoperate with OpenPGP systems and need a maintained package, consider a community fork.
-	// See https://golang.org/issue/44226
-	"golang.org/x/crypto/openpgp/packet" //nolint: staticcheck
-	"golang.org/x/crypto/openpgp/s2k"    //nolint: staticcheck
-
 	"github.com/sigstore/gitsign/internal"
 )
+
+// RHTAS FIPS - DO NOT REMOVE
+// ========================================
+// OpenPGP public-key algorithm IDs (RFC 4880 Section 9.1).
+// Inlined to avoid importing golang.org/x/crypto/openpgp/packet.
+const (
+	pubKeyAlgoRSA   = 1
+	pubKeyAlgoECDSA = 19
+)
+
+// hashToHashID maps crypto.Hash values to OpenPGP hash IDs (RFC 4880 Section 9.4).
+// Inlined to avoid importing golang.org/x/crypto/openpgp/s2k.
+func hashToHashID(h crypto.Hash) byte {
+	switch h {
+	case crypto.MD5:
+		return 1
+	case crypto.SHA1:
+		return 2
+	case crypto.RIPEMD160:
+		return 3
+	case crypto.SHA256:
+		return 8
+	case crypto.SHA384:
+		return 9
+	case crypto.SHA512:
+		return 10
+	case crypto.SHA224:
+		return 11
+	case crypto.SHA3_256:
+		return 12
+	case crypto.SHA3_512:
+		return 14
+	default:
+		return 0
+	}
+}
+
+// ========================================
 
 // This file implements gnupg's "status protocol". When the --status-fd argument
 // is passed, gpg will output machine-readable status updates to that fd.
@@ -192,23 +223,26 @@ func (w *StatusWriter) EmitSigCreated(cert *x509.Certificate, isDetached bool) {
 		sigType = "S"
 	}
 
+	// RHTAS FIPS - DO NOT REMOVE
+	// ========================================
 	switch cert.SignatureAlgorithm {
 	case x509.SHA1WithRSA, x509.SHA256WithRSA, x509.SHA384WithRSA, x509.SHA512WithRSA:
-		pkAlgo = byte(packet.PubKeyAlgoRSA)
+		pkAlgo = pubKeyAlgoRSA
 	case x509.ECDSAWithSHA1, x509.ECDSAWithSHA256, x509.ECDSAWithSHA384, x509.ECDSAWithSHA512:
-		pkAlgo = byte(packet.PubKeyAlgoECDSA)
+		pkAlgo = pubKeyAlgoECDSA
 	}
 
 	switch cert.SignatureAlgorithm {
 	case x509.SHA1WithRSA, x509.ECDSAWithSHA1:
-		hashAlgo, _ = s2k.HashToHashId(crypto.SHA1)
+		hashAlgo = hashToHashID(crypto.SHA1)
 	case x509.SHA256WithRSA, x509.ECDSAWithSHA256:
-		hashAlgo, _ = s2k.HashToHashId(crypto.SHA256)
+		hashAlgo = hashToHashID(crypto.SHA256)
 	case x509.SHA384WithRSA, x509.ECDSAWithSHA384:
-		hashAlgo, _ = s2k.HashToHashId(crypto.SHA384)
+		hashAlgo = hashToHashID(crypto.SHA384)
 	case x509.SHA512WithRSA, x509.ECDSAWithSHA512:
-		hashAlgo, _ = s2k.HashToHashId(crypto.SHA512)
+		hashAlgo = hashToHashID(crypto.SHA512)
 	}
+	// ========================================
 
 	// gpgsm seems to always use 0x00
 	sigClass = 0

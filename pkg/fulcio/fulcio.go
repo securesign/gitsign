@@ -15,7 +15,9 @@
 package fulcio
 
 import (
+	"context"
 	"crypto"
+	"crypto/fips140"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/x509"
@@ -23,8 +25,10 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/sigstore/fulcio/pkg/api"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
+	"golang.org/x/oauth2"
 )
 
 type Client interface {
@@ -66,7 +70,37 @@ func (c *ClientImpl) GetCert(priv crypto.Signer) (*api.CertificateResponse, erro
 		return nil, err
 	}
 
-	tok, err := oauthflow.OIDConnect(c.oidc.Issuer, c.oidc.ClientID, c.oidc.ClientSecret, c.oidc.RedirectURL, c.oidc.TokenGetter)
+	// RHTAS FIPS - DO NOT REMOVE
+	// ========================================
+	// go-jose computes sha1.Sum during JWK parsing (x5t thumbprint) which is
+	// non-cryptographic but would panic under fips140=only.
+	// Same pattern as securesign/fulcio#401.
+	var tok *oauthflow.OIDCIDToken
+	if fips140.Enabled() {
+		if sg, ok := c.oidc.TokenGetter.(*oauthflow.StaticTokenGetter); ok {
+			tok, err = sg.GetIDToken(nil, oauth2.Config{})
+		} else {
+			var provider *oidc.Provider
+			fips140.WithoutEnforcement(func() {
+				provider, err = oidc.NewProvider(context.Background(), c.oidc.Issuer)
+			})
+			if err == nil {
+				config := oauth2.Config{
+					ClientID:     c.oidc.ClientID,
+					ClientSecret: c.oidc.ClientSecret,
+					Endpoint:     provider.Endpoint(),
+					Scopes:       []string{oidc.ScopeOpenID, "email"},
+					RedirectURL:  c.oidc.RedirectURL,
+				}
+				fips140.WithoutEnforcement(func() {
+					tok, err = c.oidc.TokenGetter.GetIDToken(provider, config)
+				})
+			}
+		}
+	} else {
+		tok, err = oauthflow.OIDConnect(c.oidc.Issuer, c.oidc.ClientID, c.oidc.ClientSecret, c.oidc.RedirectURL, c.oidc.TokenGetter)
+	}
+	// ========================================
 	if err != nil {
 		return nil, err
 	}
