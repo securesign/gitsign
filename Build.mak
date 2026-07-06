@@ -15,23 +15,23 @@ ifeq ($(DIFF), 1)
 endif
 
 LDFLAGS=-buildid= -X github.com/sigstore/gitsign/pkg/version.gitVersion=$(GIT_VERSION)
-FIPS_MODULE ?= latest
+FIPS_MODULE ?= v1.0.0
 
 .PHONY: gitsign-cli-linux
-gitsign-cli-linux: ## Build native Linux binary (FIPS, CGO)
-	env CGO_ENABLED=1 GOEXPERIMENT=strictfipsruntime go build -mod=readonly -o gitsign_cli_linux -trimpath -ldflags "$(LDFLAGS) -w -s" .
+gitsign-cli-linux: ## Build native Linux binary (native Go FIPS, no OpenSSL)
+	env CGO_ENABLED=0 GOFIPS140=$(FIPS_MODULE) go build -mod=readonly -tags no_openssl -o gitsign_cli_linux -trimpath -ldflags "$(LDFLAGS) -w -s" .
 
 .PHONY:
 cross-platform: gitsign-cli-darwin-arm64 gitsign-cli-darwin-amd64 gitsign-cli-windows ## Build all distributable (cross-platform) binaries
 
 .PHONY:	gitsign-cli-darwin-arm64
 gitsign-cli-darwin-arm64: ## Build for mac M1
-	env CGO_ENABLED=0 GOFIPS140=$(FIPS_MODULE) GOOS=darwin GOARCH=arm64 go build -mod=readonly -o gitsign_cli_darwin_arm64 -trimpath -ldflags "$(LDFLAGS) -w -s" .
+	env CGO_ENABLED=0 GOFIPS140=$(FIPS_MODULE) GOOS=darwin GOARCH=arm64 go build -mod=readonly -tags no_openssl -o gitsign_cli_darwin_arm64 -trimpath -ldflags "$(LDFLAGS) -w -s" .
 
 .PHONY: gitsign-cli-darwin-amd64
 gitsign-cli-darwin-amd64:  ## Build for Darwin (macOS)
-	env CGO_ENABLED=0 GOFIPS140=$(FIPS_MODULE) GOOS=darwin GOARCH=amd64 go build -mod=readonly -o gitsign_cli_darwin_amd64 -trimpath -ldflags "$(LDFLAGS) -w -s" .
+	env CGO_ENABLED=0 GOFIPS140=$(FIPS_MODULE) GOOS=darwin GOARCH=amd64 go build -mod=readonly -tags no_openssl -o gitsign_cli_darwin_amd64 -trimpath -ldflags "$(LDFLAGS) -w -s" .
 
 .PHONY: gitsign-cli-windows
 gitsign-cli-windows: ## Build for Windows
-	env CGO_ENABLED=0 GOFIPS140=$(FIPS_MODULE) GOOS=windows GOARCH=amd64 go build -mod=readonly -o gitsign_cli_windows_amd64.exe -trimpath -ldflags "$(LDFLAGS) -w -s" .
+	env CGO_ENABLED=0 GOFIPS140=$(FIPS_MODULE) GOOS=windows GOARCH=amd64 go build -mod=readonly -tags no_openssl -o gitsign_cli_windows_amd64.exe -trimpath -ldflags "$(LDFLAGS) -w -s" .
