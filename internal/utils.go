@@ -16,6 +16,7 @@
 package internal
 
 import (
+	"crypto/fips140"
 	"crypto/sha1" // #nosec G505
 	"crypto/x509"
 	"encoding/hex"
@@ -33,7 +34,13 @@ func certFingerprint(cert *x509.Certificate) []byte {
 		return nil
 	}
 
-	fpr := sha1.Sum(cert.Raw) // nolint:gosec
+	// RHTAS FIPS - DO NOT REMOVE
+	// ========================================
+	var fpr [sha1.Size]byte
+	fips140.WithoutEnforcement(func() {
+		fpr = sha1.Sum(cert.Raw) // nolint:gosec
+	})
+	// ========================================
 	return fpr[:]
 }
 
