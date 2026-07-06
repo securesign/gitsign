@@ -25,6 +25,8 @@ spec:
     value: 1.4.0
   - name: dockerfile
     value: Dockerfile.gitsign.rh
+  - name: ALLOW_CROSS_PLATFORM_IMAGES
+    value: "true"
   - name: git-url
     value: '{{repo_url}}'
   - name: output-image
