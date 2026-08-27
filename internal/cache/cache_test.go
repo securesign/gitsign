@@ -29,7 +29,7 @@ import (
 	"github.com/github/smimesign/fakeca"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sigstore/gitsign/internal/cache"
-	"github.com/sigstore/gitsign/internal/cache/api"
+	cacheapi "github.com/sigstore/gitsign/internal/cache/api"
 	"github.com/sigstore/gitsign/internal/cache/service"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
@@ -72,13 +72,13 @@ func TestCache(t *testing.T) {
 	host, _ := os.Hostname()
 	wd, _ := os.Getwd()
 	id := fmt.Sprintf("%s@%s", host, wd)
-	cred := new(api.Credential)
-	if err := client.Client.Call("Service.GetCredential", &api.GetCredentialRequest{ID: id}, cred); err != nil {
+	cred := new(cacheapi.Credential)
+	if err := client.Client.Call("Service.GetCredential", &cacheapi.GetCredentialRequest{ID: id}, cred); err != nil {
 		t.Fatal(err)
 	}
 
 	privPEM, _ := cryptoutils.MarshalPrivateKeyToPEM(priv)
-	want := &api.Credential{
+	want := &cacheapi.Credential{
 		PrivateKey: privPEM,
 		Cert:       certPEM,
 	}

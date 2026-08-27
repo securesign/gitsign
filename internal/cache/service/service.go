@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/patrickmn/go-cache"
-	"github.com/sigstore/gitsign/internal/cache/api"
+	cacheapi "github.com/sigstore/gitsign/internal/cache/api"
 	"github.com/sigstore/gitsign/internal/fulcio"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
@@ -42,7 +42,7 @@ func NewService() *Service {
 	return s
 }
 
-func (s *Service) StoreCredential(req api.StoreCredentialRequest, resp *api.Credential) error {
+func (s *Service) StoreCredential(req cacheapi.StoreCredentialRequest, resp *cacheapi.Credential) error {
 	fmt.Println("Store", req.ID)
 	if err := s.store.Add(req.ID, req.Credential, 10*time.Minute); err != nil {
 		return err
@@ -51,13 +51,13 @@ func (s *Service) StoreCredential(req api.StoreCredentialRequest, resp *api.Cred
 	return nil
 }
 
-func (s *Service) GetCredential(req api.GetCredentialRequest, resp *api.Credential) error {
+func (s *Service) GetCredential(req cacheapi.GetCredentialRequest, resp *cacheapi.Credential) error {
 	ctx := context.Background()
 	fmt.Println("Get", req.ID)
 	i, ok := s.store.Get(req.ID)
 	if ok {
 		fmt.Println("gitsign-credential-cache: found credential!")
-		cred, ok := i.(*api.Credential)
+		cred, ok := i.(*cacheapi.Credential)
 		if !ok {
 			return fmt.Errorf("unknown credential type %T", i)
 		}
@@ -81,7 +81,7 @@ func (s *Service) GetCredential(req api.GetCredentialRequest, resp *api.Credenti
 	if err != nil {
 		return err
 	}
-	cred := &api.Credential{
+	cred := &cacheapi.Credential{
 		PrivateKey: privPEM,
 		Cert:       id.CertPEM,
 		Chain:      id.ChainPEM,

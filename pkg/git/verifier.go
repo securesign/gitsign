@@ -22,7 +22,7 @@ import (
 
 	"github.com/sigstore/gitsign/internal/fulcio/fulcioroots"
 	"github.com/sigstore/gitsign/internal/sigstore/compat"
-	"github.com/sigstore/sigstore/pkg/tuf"
+	"github.com/sigstore/sigstore-go/pkg/root"
 )
 
 // Verifier verifies git commit signature data.
@@ -146,15 +146,21 @@ func (v *CertVerifier) Verify(_ context.Context, data, sig []byte, detached bool
 	return chains[0][0][0], nil
 }
 
-// NewDefaultVerifier returns a new CertVerifier with the default Fulcio roots loaded from the local TUF client.
+// NewDefaultVerifier returns a new CertVerifier with the default Fulcio roots loaded from TUF.
 // See https://docs.sigstore.dev/system_config/custom_components/ for how to customize this behavior.
 func NewDefaultVerifier(ctx context.Context) (*CertVerifier, error) {
-	if err := tuf.Initialize(ctx, tuf.DefaultRemoteRoot, nil); err != nil {
-		return nil, err
-	}
 	root, intermediate, err := fulcioroots.New(x509.NewCertPool(), fulcioroots.FromTUF(ctx))
 	if err != nil {
 		return nil, err
 	}
 	return NewCertVerifier(WithRootPool(root), WithIntermediatePool(intermediate))
+}
+
+// NewVerifierFromTrustedRoot returns a new CertVerifier using Fulcio certificates from a pre-fetched TrustedRoot.
+func NewVerifierFromTrustedRoot(trustedRoot *root.TrustedRoot) (*CertVerifier, error) {
+	rootPool, intermediate, err := fulcioroots.New(x509.NewCertPool(), fulcioroots.FromTrustedRoot(trustedRoot))
+	if err != nil {
+		return nil, err
+	}
+	return NewCertVerifier(WithRootPool(rootPool), WithIntermediatePool(intermediate))
 }

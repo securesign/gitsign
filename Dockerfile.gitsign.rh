@@ -1,0 +1,40 @@
+# Build stage
+FROM registry.redhat.io/ubi9/go-toolset:9.8-1783931515@sha256:c6b19c92a8613bcfdf69ef00a6ea94ac689ec76d07758d71416c1faa6f35f431 AS build-env
+
+ENV GOFIPS140=v1.0.0
+
+WORKDIR /gitsign
+RUN git config --global --add safe.directory /gitsign
+COPY . .
+USER root
+RUN git stash && \
+    git stash pop || true && \
+    git update-index --assume-unchanged Dockerfile.gitsign.rh && \
+    go mod edit -godebug=fips140=auto && \
+    go mod download && \
+    make -f Build.mak gitsign-cli-linux && \
+    git update-index --no-assume-unchanged Dockerfile.gitsign.rh
+
+# Install Gitsign
+FROM registry.access.redhat.com/ubi9-minimal@sha256:463cae32c6f6f5594b11a5c22de275016bd8545ce58a6373388e8b24f13fc15c
+
+LABEL description="Gitsign is a source code signing tool that leverages simple, secure, and auditable signatures based on simple primitives and best practices."
+LABEL io.k8s.description="Gitsign is a source code signing tool that leverages simple, secure, and auditable signatures based on simple primitives and best practices."
+LABEL io.k8s.display-name="Gitsign container image for Red Hat Trusted Artifact Signer"
+LABEL io.openshift.tags="gitsign trusted-artifact-signer"
+LABEL summary="Provides the gitsign CLI binary for signing and verifying container images."
+LABEL com.redhat.component="gitsign"
+LABEL name="rhtas/gitsign-rhel9"
+
+COPY --from=build-env /gitsign/gitsign_cli_linux /usr/local/bin/gitsign_cli_linux
+COPY LICENSE /licenses/license.txt
+
+ENV HOME=/home
+WORKDIR ${HOME}
+
+RUN chgrp -R 0 /${HOME} && chmod -R g=u /${HOME}
+
+USER 65532:65532
+
+# Makes sure the container stays running
+CMD ["tail", "-f", "/dev/null"]

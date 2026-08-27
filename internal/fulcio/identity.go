@@ -35,6 +35,7 @@ import (
 	"github.com/sigstore/gitsign/internal/fulcio/fulcioroots"
 	"github.com/sigstore/gitsign/internal/signerverifier"
 	"github.com/sigstore/gitsign/internal/sigstore/compat"
+	"github.com/sigstore/gitsign/internal/ui"
 	"github.com/sigstore/gitsign/pkg/fulcio"
 	"github.com/sigstore/sigstore-go/pkg/sign"
 	"github.com/sigstore/sigstore/pkg/oauth"
@@ -221,7 +222,7 @@ func (f *IdentityFactory) NewIdentity(ctx context.Context, cfg *config.Config) (
 	html, err := oauth.GetInteractiveSuccessHTML(cfg.Autoclose, cfg.AutocloseTimeout)
 	if err != nil {
 		fmt.Println("error getting interactive success html, using static default", err)
-		html = oauth.InteractiveSuccessHTML
+		html = ui.RedHatInteractiveSuccessHTML
 	}
 	flow := &oauthflow.InteractiveIDTokenGetter{
 		HTMLPage: html,

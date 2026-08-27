@@ -24,7 +24,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/sigstore/gitsign/internal/cache/api"
+	cacheapi "github.com/sigstore/gitsign/internal/cache/api"
 	"github.com/sigstore/gitsign/internal/config"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
@@ -40,8 +40,8 @@ func (c *Client) GetCredentials(_ context.Context, cfg *config.Config) (crypto.P
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("error getting credential ID: %w", err)
 	}
-	resp := new(api.Credential)
-	if err := c.Client.Call("Service.GetCredential", api.GetCredentialRequest{
+	resp := new(cacheapi.Credential)
+	if err := c.Client.Call("Service.GetCredential", cacheapi.GetCredentialRequest{
 		ID:     id,
 		Config: cfg,
 	}, resp); err != nil {
@@ -96,14 +96,14 @@ func (c *Client) StoreCert(_ context.Context, priv crypto.PrivateKey, cert, chai
 		return err
 	}
 
-	if err := c.Client.Call("Service.StoreCredential", api.StoreCredentialRequest{
+	if err := c.Client.Call("Service.StoreCredential", cacheapi.StoreCredentialRequest{
 		ID: id,
-		Credential: &api.Credential{
+		Credential: &cacheapi.Credential{
 			PrivateKey: privPEM,
 			Cert:       cert,
 			Chain:      chain,
 		},
-	}, new(api.Credential)); err != nil {
+	}, new(cacheapi.Credential)); err != nil {
 		return err
 	}
 

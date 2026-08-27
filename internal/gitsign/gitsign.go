@@ -28,6 +28,7 @@ import (
 	"github.com/sigstore/gitsign/internal/config"
 	"github.com/sigstore/gitsign/internal/fulcio/fulcioroots"
 	rekorinternal "github.com/sigstore/gitsign/internal/rekor"
+	"github.com/sigstore/gitsign/internal/sigstoreroot"
 	"github.com/sigstore/gitsign/pkg/git"
 	"github.com/sigstore/gitsign/pkg/rekor"
 	"github.com/sigstore/sigstore-go/pkg/root"
@@ -73,7 +74,18 @@ func loadDetachedSCT(path string) ([]byte, error) {
 // Note: not all options are supported.
 //   - cert: This is always taken from the commit.
 func NewVerifierWithCosignOpts(ctx context.Context, cfg *config.Config, opts *cosignopts.CertVerifyOptions) (*Verifier, error) {
-	root, intermediate, err := fulcioroots.NewFromConfig(ctx, cfg)
+	trustedRoot, err := sigstoreroot.FetchTrustedRoot()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching trusted root: %w", err)
+	}
+
+	// Load Fulcio roots - use file if specified, otherwise use trusted root
+	var root, intermediate *x509.CertPool
+	if cfg.FulcioRoot != "" {
+		root, intermediate, err = fulcioroots.New(x509.NewCertPool(), fulcioroots.FromFile(cfg.FulcioRoot))
+	} else {
+		root, intermediate, err = fulcioroots.New(x509.NewCertPool(), fulcioroots.FromTrustedRoot(trustedRoot))
+	}
 	if err != nil {
 		return nil, fmt.Errorf("error getting certificate root: %w", err)
 	}
@@ -81,6 +93,13 @@ func NewVerifierWithCosignOpts(ctx context.Context, cfg *config.Config, opts *co
 	tsa, err := x509.SystemCertPool()
 	if err != nil {
 		return nil, fmt.Errorf("error getting system root pool: %w", err)
+	}
+	tsaCerts, err := sigstoreroot.GetTSACertificates(trustedRoot)
+	if err != nil {
+		return nil, fmt.Errorf("error getting TSA certificates from trusted root: %w", err)
+	}
+	for _, c := range tsaCerts {
+		tsa.AddCert(c)
 	}
 	if path := cfg.TimestampCert; path != "" {
 		f, err := os.Open(path) // nolint:gosec
@@ -118,9 +137,13 @@ func NewVerifierWithCosignOpts(ctx context.Context, cfg *config.Config, opts *co
 	// and warn if missing.
 	var certverifier cert.Verifier
 	if opts != nil {
-		ctpub, err := cosign.GetCTLogPubs(ctx)
+		ctpub, err := sigstoreroot.GetCTLogPubs(trustedRoot)
 		if err != nil {
 			return nil, fmt.Errorf("error getting CT log public key: %w", err)
+		}
+		rekorPubs, err := sigstoreroot.GetRekorPubs(trustedRoot)
+		if err != nil {
+			return nil, fmt.Errorf("error getting Rekor public key: %w", err)
 		}
 		identities, err := opts.Identities()
 		if err != nil {
@@ -135,7 +158,7 @@ func NewVerifierWithCosignOpts(ctx context.Context, cfg *config.Config, opts *co
 			RootCerts:                    root,
 			IntermediateCerts:            intermediate,
 			CTLogPubKeys:                 ctpub,
-			RekorPubKeys:                 rekor.PublicKeys(),
+			RekorPubKeys:                 rekorPubs,
 			CertGithubWorkflowTrigger:    opts.CertGithubWorkflowTrigger,
 			CertGithubWorkflowSha:        opts.CertGithubWorkflowSha,
 			CertGithubWorkflowName:       opts.CertGithubWorkflowName,

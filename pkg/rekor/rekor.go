@@ -33,6 +33,7 @@ import (
 	rekoroid "github.com/sigstore/gitsign/internal/rekor/oid"
 	"github.com/sigstore/gitsign/internal/rekor/tlog"
 	"github.com/sigstore/gitsign/internal/sigstore/compat"
+	"github.com/sigstore/gitsign/internal/sigstoreroot"
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/rekor/pkg/generated/client/index"
@@ -73,9 +74,8 @@ func New(url string, opts ...rekor.Option) (*Client, error) {
 }
 
 func NewWithOptions(ctx context.Context, url string, opts ...Option) (*Client, error) {
-	// Defaults
 	o := &options{
-		rekorPublicKeys: cosign.GetRekorPubs,
+		rekorPublicKeys: getRekorPubsFromTrustedRoot,
 	}
 	for _, f := range opts {
 		f(o)
@@ -273,6 +273,14 @@ func extractData(e *models.LogEntryAnon) (string, []*x509.Certificate, error) {
 
 func (c *Client) PublicKeys() *cosign.TrustedTransparencyLogPubKeys {
 	return c.publicKeys
+}
+
+func getRekorPubsFromTrustedRoot(_ context.Context) (*cosign.TrustedTransparencyLogPubKeys, error) {
+	trustedRoot, err := sigstoreroot.FetchTrustedRoot()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching trusted root: %w", err)
+	}
+	return sigstoreroot.GetRekorPubs(trustedRoot)
 }
 
 // VerifyInclusion verifies a signature's inclusion in Rekor using offline verification.
