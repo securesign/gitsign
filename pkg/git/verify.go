@@ -23,8 +23,8 @@ import (
 	"fmt"
 
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/sigstore/gitsign/pkg/rekor"
+	protobundle "github.com/sigstore/protobuf-specs/gen/pb-go/bundle/v1"
 	"github.com/sigstore/rekor/pkg/generated/models"
 )
 
@@ -34,6 +34,10 @@ type VerificationSummary struct {
 	Cert *x509.Certificate
 	// Rekor log entry of the commit.
 	LogEntry *models.LogEntryAnon
+	// Bundle is the sigstore bundle the signature was verified as. It is only
+	// populated by the experimental bundle verification path (cfg.EnableSigstoreGo);
+	// the legacy path leaves it nil.
+	Bundle *protobundle.Bundle
 	// List of claims about what succeeded / failed during validation.
 	// This can be used to get details on what succeeded / failed during
 	// validation. This is not an exhaustive list - claims may be missing
@@ -82,8 +86,12 @@ func Verify(ctx context.Context, git Verifier, rekor rekor.Verifier, data, sig [
 		}, nil
 	}
 
-	// Legacy commit based lookup.
-	commit, err := ObjectHash(data, sig)
+	// Legacy rekor lookup: reconstruct the object hash that the legacy rekor
+	// entries were keyed on. We assume sig is the SHA-1-form signature (gpgsig
+	// for commits, in-body PEM for tags) — which matches how legacy rekor
+	// entries were generated. For new gpgsig-sha256 signatures there are no
+	// legacy entries to look up, so this reconstruction is best-effort.
+	commit, err := ObjectHashFromSignature(data, sig)
 	if err != nil {
 		return nil, err
 	}
@@ -118,76 +126,48 @@ func VerifySignature(data, sig []byte, detached bool, rootCerts, intermediates *
 	return v.Verify(context.Background(), data, sig, detached)
 }
 
-type encoder interface {
-	Encode(o plumbing.EncodedObject) error
-}
-
-// ObjectHash is a string representation of an encoded Git object
-func ObjectHash(data, sig []byte) (string, error) {
-	// Precompute commit hash to store in tlog
-	obj := &plumbing.MemoryObject{}
-	if _, err := obj.Write(data); err != nil {
-		return "", err
-	}
-
+// ObjectHashFromSignature reconstructs the git-core object hash from the object
+// body (everything but the signature) and the signature, by reassembling the
+// raw object bytes (gpgsig for commits, in-body PEM for tags) and hashing them.
+// This is the hash legacy "online" Rekor entries are keyed on.
+func ObjectHashFromSignature(data, sig []byte) (string, error) {
 	var (
-		encoder encoder
-		err     error
+		raw []byte
+		err error
 	)
-	// We're making big assumptions here about the ordering of fields
-	// in Git objects. Unfortunately go-git does loose parsing of objects,
-	// so it will happily decode objects that don't match the unmarshal type.
-	// We should see if there's a better way to detect object types.
 	switch {
 	case bytes.HasPrefix(data, []byte("tree ")):
-		encoder, err = commit(obj, sig)
+		raw, err = JoinCommit(&CommitSig{Payload: data, Gpgsig: sig})
 	case bytes.HasPrefix(data, []byte("object ")):
-		encoder, err = tag(obj, sig)
+		raw, err = JoinTag(&TagSig{Payload: data, InBody: sig})
 	default:
 		return "", errors.New("could not determine Git object type")
 	}
 	if err != nil {
 		return "", err
 	}
-
-	// go-git will compute a hash on decode and preserve even if we alter the
-	// object data. To work around this, re-encode the object into a new object
-	// to force a new hash to be computed.
-	out := &plumbing.MemoryObject{}
-	err = encoder.Encode(out)
-	return out.Hash().String(), err
+	return ObjectHash(raw)
 }
 
-func commit(obj *plumbing.MemoryObject, sig []byte) (*object.Commit, error) {
-	obj.SetType(plumbing.CommitObject)
-
-	base := object.Commit{}
-	if err := base.Decode(obj); err != nil {
-		return nil, err
+// ObjectHash returns the git-core hash of an object given its raw bytes
+// (the same bytes git stores in the object database, without the
+// "<type> <size>\0" prefix). The object type is inferred from the first
+// header line: "tree " for commits, "object " for tags.
+func ObjectHash(raw []byte) (string, error) {
+	var objType plumbing.ObjectType
+	switch {
+	case bytes.HasPrefix(raw, []byte("tree ")):
+		objType = plumbing.CommitObject
+	case bytes.HasPrefix(raw, []byte("object ")):
+		objType = plumbing.TagObject
+	default:
+		return "", errors.New("could not determine Git object type")
 	}
-	return &object.Commit{
-		Author:       base.Author,
-		Committer:    base.Committer,
-		PGPSignature: string(sig),
-		Message:      base.Message,
-		TreeHash:     base.TreeHash,
-		ParentHashes: base.ParentHashes,
-	}, nil
-}
 
-func tag(obj *plumbing.MemoryObject, sig []byte) (*object.Tag, error) {
-	obj.SetType(plumbing.TagObject)
-
-	base := object.Tag{}
-	if err := base.Decode(obj); err != nil {
-		return nil, err
+	obj := &plumbing.MemoryObject{}
+	obj.SetType(objType)
+	if _, err := obj.Write(raw); err != nil {
+		return "", err
 	}
-	return &object.Tag{
-		Tagger:       base.Tagger,
-		Name:         base.Name,
-		TargetType:   base.TargetType,
-		Target:       base.Target,
-		Message:      base.Message,
-		PGPSignature: string(sig),
-	}, nil
+	return obj.Hash().String(), nil
 }

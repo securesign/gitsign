@@ -27,7 +27,9 @@ import (
 	cms "github.com/sigstore/gitsign/internal/fork/ietf-cms"
 	rekoroid "github.com/sigstore/gitsign/internal/rekor/oid"
 	"github.com/sigstore/gitsign/pkg/rekor"
+	protobundle "github.com/sigstore/protobuf-specs/gen/pb-go/bundle/v1"
 	"github.com/sigstore/rekor/pkg/generated/models"
+	"github.com/sigstore/sigstore-go/pkg/sign"
 )
 
 type SignOptions struct {
@@ -57,6 +59,22 @@ type SignOptions struct {
 	// Rekor client - if specified, Rekor details are embedded directly in the
 	// signature output.
 	Rekor rekor.Writer
+
+	// Bundle, when true, drives signing's Rekor interaction through sigstore-go's
+	// libraries and the CMS<->bundle compat layer instead of the legacy cosign
+	// helpers. In offline mode (Rekor set) the transparency log entry is embedded
+	// in the CMS, byte-compatible with the legacy path. In online mode
+	// (git.LegacySHASign) the commit-SHA entry is signed and uploaded via
+	// sigstore-go but not embedded (see signature.SignOnline). RekorURL must be
+	// provided.
+	Bundle bool
+	// RekorURL is the Rekor base URL, required when Bundle is true.
+	RekorURL string
+	// RekorVersion selects the Rekor API version to upload to on the Bundle
+	// signing path. 1 (or 0, the zero value) uses the legacy Rekor v1 REST API;
+	// 2 uses the Rekor v2 / rekor-tiles API. Only takes effect when Bundle is
+	// true.
+	RekorVersion uint32
 }
 
 // Identity is a copy of smimesign.Identity to allow for compatibility without
@@ -69,6 +87,9 @@ type Identity interface {
 	CertificateChain() ([]*x509.Certificate, error)
 	// Signer gets a crypto.Signer that uses the identity's private key.
 	Signer() (crypto.Signer, error)
+	// Keypair gets a sigstore-go sign.Keypair backed by the identity's key, used
+	// by the bundle signing path.
+	Keypair() (sign.Keypair, error)
 	// Delete deletes this identity from the system.
 	Delete() error
 	// Close any manually managed memory held by the Identity.
@@ -82,6 +103,9 @@ type SignResponse struct {
 	// LogEntry is the Rekor tlog entry from the signing operation.
 	// This is only populated if offline signing mode was used (e.g. SignOpts.Rekor was passed in)
 	LogEntry *models.LogEntryAnon
+	// Bundle is the sigstore bundle produced during signing. It is only populated
+	// by the bundle signing path (SignOptions.Bundle); the legacy path leaves it nil.
+	Bundle *protobundle.Bundle
 }
 
 // Sign signs a given payload for the given identity.
@@ -104,6 +128,17 @@ func Sign(ctx context.Context, ident Identity, body []byte, opts SignOptions) (*
 			}
 			return nil, fmt.Errorf("gitsign.matchCommitter: certificate identity does not match config - want %s <%s>, got %s", opts.UserName, opts.UserEmail, strings.Join(san, ","))
 		}
+	}
+
+	// Experimental bundle signing path: sigstore-go produces the signature and
+	// Rekor entry as a bundle, which is then converted to CMS for storage. Only
+	// used in offline Rekor mode (opts.Rekor set).
+	if opts.Bundle && opts.Rekor != nil {
+		tlog, err := newRekorTransparency(opts.RekorURL, opts.RekorVersion)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create rekor client: %w", err)
+		}
+		return signBundle(ctx, body, ident, tlog, opts)
 	}
 
 	signer, err := ident.Signer()
@@ -145,7 +180,6 @@ func Sign(ctx context.Context, ident Identity, body []byte, opts SignOptions) (*
 
 	var lea *models.LogEntryAnon
 	if opts.Rekor != nil {
-		var err error
 		lea, err = attachRekorLogEntry(ctx, sd, cert, opts.Rekor)
 		if err != nil {
 			return nil, err

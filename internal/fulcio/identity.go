@@ -34,8 +34,10 @@ import (
 	"github.com/sigstore/gitsign/internal/config"
 	"github.com/sigstore/gitsign/internal/fulcio/fulcioroots"
 	"github.com/sigstore/gitsign/internal/signerverifier"
+	"github.com/sigstore/gitsign/internal/sigstore/compat"
 	"github.com/sigstore/gitsign/internal/ui"
 	"github.com/sigstore/gitsign/pkg/fulcio"
+	"github.com/sigstore/sigstore-go/pkg/sign"
 	"github.com/sigstore/sigstore/pkg/oauth"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -143,6 +145,16 @@ func (i *Identity) Signer() (crypto.Signer, error) {
 	return s, nil
 }
 
+// Keypair returns a sigstore-go sign.Keypair backed by the identity's signer,
+// for use with the bundle signing path.
+func (i *Identity) Keypair() (sign.Keypair, error) {
+	s, err := i.Signer()
+	if err != nil {
+		return nil, err
+	}
+	return compat.NewKeypair(s)
+}
+
 // Delete deletes this identity from the system.
 func (i *Identity) Delete() error {
 	// Does nothing - keys are ephemeral
@@ -207,26 +219,47 @@ func (f *IdentityFactory) NewIdentity(ctx context.Context, cfg *config.Config) (
 	if cfg.ConnectorID == "" {
 		cfg.Autoclose = false
 	}
-	_, err = oauth.GetInteractiveSuccessHTML(cfg.Autoclose, cfg.AutocloseTimeout)
+	html, err := oauth.GetInteractiveSuccessHTML(cfg.Autoclose, cfg.AutocloseTimeout)
 	if err != nil {
 		fmt.Println("error getting interactive success html, using static default", err)
+		html = ui.RedHatInteractiveSuccessHTML
 	}
-	defaultFlow := &oauthflow.InteractiveIDTokenGetter{
-		HTMLPage: ui.RedHatInteractiveSuccessHTML,
+	flow := &oauthflow.InteractiveIDTokenGetter{
+		HTMLPage: html,
 		Input:    f.in,
 		Output:   f.out,
 	}
 	if cfg.ConnectorID != "" {
-		defaultFlow.ExtraAuthURLParams = []oauth2.AuthCodeOption{oauthflow.ConnectorIDOpt(cfg.ConnectorID)}
+		flow.ExtraAuthURLParams = []oauth2.AuthCodeOption{oauthflow.ConnectorIDOpt(cfg.ConnectorID)}
 	}
-	var authFlow oauthflow.TokenGetter = defaultFlow
+	// If a custom URL opener command is configured, open the login URL with it
+	// instead of the platform default browser.
+	if cfg.URLOpener != "" {
+		open, err := newCommandURLOpener(cfg.URLOpener)
+		if err != nil {
+			return nil, err
+		}
+		flow.BrowserOpener = open
+	}
+
+	var authFlow oauthflow.TokenGetter = flow
 
 	// If enabled, try OIDC token providers to get a token. unless the token provider is "interactive" (in which case always do default interactive flow).
 	var provider providers.Interface
-	if cfg.TokenProvider == "" && providers.Enabled(ctx) {
+	switch {
+	case cfg.TokenProvider == "" && providers.Enabled(ctx):
 		// If no token provider is set, look for any available provider to use.
 		provider = defaultFlowProvider{}
-	} else if cfg.TokenProvider != "" && cfg.TokenProvider != "interactive" {
+	case cfg.TokenProvider == "device":
+		// Special-case: use the OAuth 2.0 device authorization grant (RFC 8628)
+		// directly via the sigstore oauthflow package. The user opens the
+		// printed verification URL on any browser (phone, laptop, anywhere) to
+		// complete OAuth consent; the SSH session itself never needs a browser,
+		// port forward, or localhost callback. Useful on remote/headless dev
+		// hosts where the interactive flow can't open a browser locally.
+		fmt.Fprintln(f.out, "using device authorization flow") // nolint:errcheck
+		authFlow = oauthflow.NewDeviceFlowTokenGetterForIssuer(cfg.Issuer)
+	case cfg.TokenProvider != "" && cfg.TokenProvider != "interactive":
 		fmt.Fprintln(f.out, "using token provider", cfg.TokenProvider) // nolint:errcheck
 
 		// If a token provider is explicitly set always use it, unless it's "interactive",
@@ -246,6 +279,7 @@ func (f *IdentityFactory) NewIdentity(ctx context.Context, cfg *config.Config) (
 		authFlow = &oauthflow.StaticTokenGetter{RawToken: idToken}
 	}
 
+	fmt.Fprintln(f.out, "Generating ephemeral keys...") // nolint:errcheck
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("generating private key: %w", err)

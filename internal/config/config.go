@@ -61,6 +61,21 @@ type Config struct {
 	// Note: online verification will be deprecated in favor of offline in the future.
 	RekorMode string
 
+	// EnableSigstoreGo enables the sigstore-go code paths for both signing and
+	// verification (via the CMS<->bundle compat layer), for online and offline
+	// Rekor modes. It defaults to true; set gitsign.enableSigstoreGo=false (or
+	// GITSIGN_ENABLE_SIGSTORE_GO=false) to fall back to the legacy CMS + Rekor
+	// signing and verification. The on-disk CMS signature format is unchanged
+	// either way.
+	EnableSigstoreGo bool
+
+	// RekorVersion selects the Rekor API version to upload signatures to. One of
+	// [1, 2] (default: 1).
+	// 1 - the legacy Rekor v1 REST API (POST /api/v1/log/entries).
+	// 2 - the Rekor v2 / rekor-tiles API. Only supported on the sigstore-go
+	// signing path, so it can only be set when gitsign.enableSigstoreGo=true.
+	RekorVersion uint32
+
 	// OIDC client ID for application
 	ClientID string
 	// File containing the OIDC Client Secret
@@ -76,7 +91,12 @@ type Config struct {
 	ConnectorID string
 	// TokenProviders select a OIDC token provider to use to fetch tokens. If not set, all providers are attempted.
 	// See https://github.com/sigstore/cosign/tree/main/pkg/providers for more details.
-	// Valid values are: [interactive, spiffe, google-workload-identity, google-impersonation, github-actions, filesystem, buildkite-agent]
+	// Valid values are: [interactive, device, spiffe, google-workload-identity, google-impersonation, github-actions, filesystem, buildkite-agent]
+	//
+	// "device" runs the OAuth 2.0 device authorization grant (RFC 8628) against
+	// the configured Issuer — the user opens the printed verification URL on any
+	// browser to complete consent; the SSH session never needs a browser or
+	// port forward. Intended for headless / remote-SSH developer workflows.
 	TokenProvider string
 
 	// Timestamp Authority address to use to get a trusted timestamp
@@ -96,6 +116,21 @@ type Config struct {
 	Autoclose bool
 	// AutocloseTimeout specifies the time to wait before closing the window
 	AutocloseTimeout int
+
+	// URLOpener is an optional command used to open the OIDC login URL in a
+	// browser during the interactive auth flow. When empty, the platform
+	// default browser is used.
+	//
+	// The command is split into a program and its arguments using shell-style
+	// word splitting (arguments containing spaces may be quoted), and each
+	// resulting token is rendered as a Go text/template with the login URL
+	// available as {{.URL}}. For example:
+	//
+	//	firefox --new-tab {{.URL}}
+	//
+	// The command is not run through a shell - the split tokens are passed
+	// directly to exec, so shell metacharacters are inert.
+	URLOpener string
 }
 
 // CLientSecret retrieves the OIDC client secret from the file provided
@@ -132,6 +167,10 @@ func Get() (*Config, error) {
 		Issuer:   "https://oauth2.sigstore.dev/auth",
 		// TODO: default to offline
 		RekorMode:        "online",
+		EnableSigstoreGo: true,
+		// RekorVersion is left at its zero value ("unset") here; it is normalized
+		// to the v1 default after validation, so that an explicitly-set value can
+		// be distinguished from the default and gated on enableSigstoreGo.
 		Autoclose:        true,
 		AutocloseTimeout: 6,
 	}
@@ -201,6 +240,45 @@ func Get() (*Config, error) {
 
 	out.LogPath = envOrValue("GITSIGN_LOG", out.LogPath)
 	out.RekorMode = envOrValue("GITSIGN_REKOR_MODE", out.RekorMode)
+	out.URLOpener = envOrValue("GITSIGN_URL_OPENER", out.URLOpener)
+	out.EnableSigstoreGo = envOrValue("GITSIGN_ENABLE_SIGSTORE_GO", fmt.Sprintf("%t", out.EnableSigstoreGo)) == "true"
+	// RekorVersion honors both the SIGSTORE and GITSIGN prefixes; GITSIGN is
+	// checked last so it takes precedence, consistent with the other shared
+	// environment variables above.
+	for _, env := range []string{"SIGSTORE_REKOR_VERSION", "GITSIGN_REKOR_VERSION"} {
+		v, ok := os.LookupEnv(env)
+		if !ok {
+			continue
+		}
+		n, err := strconv.ParseUint(v, 10, 32)
+		if err != nil {
+			return nil, fmt.Errorf("invalid %s %q: %w", env, v, err)
+		}
+		out.RekorVersion = uint32(n)
+	}
+
+	// Note: EnableSigstoreGo is intentionally allowed with any Rekor mode. Both
+	// signing (offline embeds the entry; online uploads the commit-SHA entry via
+	// sigstore-go without embedding) and verification (including legacy online
+	// signatures) support sigstore-go regardless of the configured mode.
+
+	// Rekor version selection only applies to the sigstore-go signing path (the
+	// legacy path is Rekor v1 only), so the option can only be set when
+	// enableSigstoreGo is enabled. A zero value means the user did not set it.
+	if out.RekorVersion != 0 {
+		switch out.RekorVersion {
+		case 1, 2:
+		default:
+			return nil, fmt.Errorf("gitsign.rekorVersion must be 1 or 2, got %d", out.RekorVersion)
+		}
+		if !out.EnableSigstoreGo {
+			return nil, fmt.Errorf("gitsign.rekorVersion can only be set when gitsign.enableSigstoreGo=true (Rekor version selection only applies to the sigstore-go signing path)")
+		}
+	}
+	// Default to Rekor v1 when unset.
+	if out.RekorVersion == 0 {
+		out.RekorVersion = 1
+	}
 
 	return out, nil
 }
@@ -258,6 +336,14 @@ func applyGitOptions(out *Config, cfg map[string]string) {
 			out.Rekor = v
 		case strings.EqualFold(k, "gitsign.rekorMode"):
 			out.RekorMode = v
+		case strings.EqualFold(k, "gitsign.enableSigstoreGo"):
+			out.EnableSigstoreGo = strings.EqualFold(v, "true")
+		case strings.EqualFold(k, "gitsign.rekorVersion"):
+			if n, err := strconv.ParseUint(v, 10, 32); err == nil {
+				out.RekorVersion = uint32(n)
+			} else {
+				log.Printf("invalid gitsign.rekorVersion value %q, ignoring", v)
+			}
 		case strings.EqualFold(k, "gitsign.clientID"):
 			out.ClientID = v
 		case strings.EqualFold(k, "gitsign.clientSecretFile"):
@@ -268,6 +354,8 @@ func applyGitOptions(out *Config, cfg map[string]string) {
 			out.Issuer = v
 		case strings.EqualFold(k, "gitsign.logPath"):
 			out.LogPath = v
+		case strings.EqualFold(k, "gitsign.urlOpener"):
+			out.URLOpener = v
 		case strings.EqualFold(k, "gitsign.connectorID"):
 			out.ConnectorID = v
 		case strings.EqualFold(k, "gitsign.tokenProvider"):

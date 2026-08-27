@@ -26,7 +26,7 @@ import (
 	"github.com/sigstore/cosign/v3/pkg/cosign"
 	"github.com/sigstore/sigstore-go/pkg/root"
 	"github.com/sigstore/sigstore-go/pkg/tuf"
-	sigstoretuf "github.com/sigstore/sigstore/pkg/tuf"
+	sigstoretuf "github.com/sigstore/sigstore/pkg/tuf" //nolint:staticcheck // using legacy TUF for compatibility
 )
 
 // SigningConfig represents the service URLs from signing_config.json.

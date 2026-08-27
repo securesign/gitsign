@@ -18,11 +18,14 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
+	"fmt"
 
 	"github.com/github/smimesign/ietf-cms/protocol"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	intoto "github.com/in-toto/attestation/go/v1"
+	gitraw "github.com/sigstore/gitsign/pkg/git"
 	"github.com/sigstore/gitsign/pkg/predicate"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -40,7 +43,14 @@ func CommitStatement(repo *git.Repository, remote, revision string) (*intoto.Sta
 	if err != nil {
 		return nil, err
 	}
-	commit, err := repo.CommitObject(*hash)
+	obj, err := repo.Storer.EncodedObject(plumbing.CommitObject, *hash)
+	if err != nil {
+		return nil, err
+	}
+	if err := gitraw.ValidateCommit(obj); err != nil {
+		return nil, err
+	}
+	commit, err := object.DecodeCommit(repo.Storer, obj)
 	if err != nil {
 		return nil, err
 	}
@@ -121,6 +131,98 @@ func CommitStatement(repo *git.Repository, remote, revision string) (*intoto.Sta
 		},
 		Predicate:     predicateStruct,
 		PredicateType: predicate.TypeV01,
+	}, nil
+}
+
+// TagStatement creates an intoto statement representing a git tag signature.
+//
+// The statement subject is the tag object itself (not the underlying commit).
+// For lightweight (non-annotated) tags or unsigned annotated tags the statement
+// will still be produced but without signature or signer information, mirroring
+// how CommitStatement handles unsigned commits.
+func TagStatement(repo *git.Repository, remote, tagName string) (*intoto.Statement, error) {
+	// Resolve the tag reference.
+	ref, err := repo.Tag(tagName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Load the tag object. If the storer doesn't have one (lightweight
+	// tag), surface the existing "not an annotated tag" error.
+	obj, err := repo.Storer.EncodedObject(plumbing.TagObject, ref.Hash())
+	if err != nil {
+		return nil, fmt.Errorf("tag %q is not an annotated tag", tagName)
+	}
+	if err := gitraw.ValidateTag(obj); err != nil {
+		return nil, err
+	}
+	tagObj, err := object.DecodeTag(repo.Storer, obj)
+	if err != nil {
+		return nil, err
+	}
+
+	// We've got the annotated tag. Create the full predicate
+	pred := &predicate.GitTag{
+		Source: &predicate.Tag{
+			Object:     tagObj.Target.String(),
+			ObjectType: tagObj.TargetType.String(),
+			Tag:        tagObj.Name,
+			Tagger: &predicate.Author{
+				Name:  tagObj.Tagger.Name,
+				Email: tagObj.Tagger.Email,
+				Date:  timestamppb.New(tagObj.Tagger.When),
+			},
+			Message: tagObj.Message,
+		},
+		Signature: tagObj.PGPSignature,
+	}
+
+	// Extract signer info from the signature.
+	if pemBlock, _ := pem.Decode([]byte(tagObj.PGPSignature)); pemBlock != nil {
+		sigs, err := parseSignature(pemBlock.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		pred.SignerInfo = sigs
+	}
+
+	return buildTagStatement(repo, remote, ref.Hash(), pred, predicate.TagTypeV01)
+}
+
+func buildTagStatement(repo *git.Repository, remote string, tagHash plumbing.Hash, pred *predicate.GitTag, predicateType string) (*intoto.Statement, error) {
+	// Try to resolve the remote name for the subject.
+	resolvedRemote, err := repo.Remote(remote)
+	if err != nil && !errors.Is(err, git.ErrRemoteNotFound) {
+		return nil, err
+	}
+	remoteName := ""
+	if resolvedRemote != nil && resolvedRemote.Config() != nil && len(resolvedRemote.Config().URLs) > 0 {
+		remoteName = resolvedRemote.Config().URLs[0]
+	}
+
+	// Convert predicate to structpb.Struct for in-toto Statement.
+	jsonBytes, err := protojson.Marshal(pred)
+	if err != nil {
+		return nil, err
+	}
+	predicateStruct := &structpb.Struct{}
+	if err := protojson.Unmarshal(jsonBytes, predicateStruct); err != nil {
+		return nil, err
+	}
+
+	return &intoto.Statement{
+		Type: intoto.StatementTypeUri,
+		Subject: []*intoto.ResourceDescriptor{
+			{
+				Digest: map[string]string{
+					"sha1":   tagHash.String(),
+					"gitTag": tagHash.String(),
+				},
+				Name: remoteName,
+			},
+		},
+		Predicate:     predicateStruct,
+		PredicateType: predicateType,
 	}, nil
 }
 

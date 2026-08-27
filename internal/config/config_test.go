@@ -17,6 +17,7 @@ package config
 import (
 	"io"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/go-git/go-billy/v5/memfs"
@@ -92,8 +93,12 @@ func TestGet(t *testing.T) {
 		RedirectURL:      "example.com",
 		ConnectorID:      "bar",
 		RekorMode:        "online",
+		EnableSigstoreGo: true,
+		RekorVersion:     1,
 		Autoclose:        true,
 		AutocloseTimeout: 6,
+		// From config file.
+		URLOpener: "firefox --new-tab {{.URL}}",
 	}
 
 	execFn = func() (io.Reader, error) {
@@ -108,4 +113,141 @@ func TestGet(t *testing.T) {
 	if diff := cmp.Diff(want, got, cmp.AllowUnexported(Config{})); diff != "" {
 		t.Error(diff)
 	}
+}
+
+func TestEnableSigstoreGo(t *testing.T) {
+	t.Cleanup(func() { execFn = realExec })
+
+	// enableSigstoreGo is valid regardless of Rekor mode: the offline-only
+	// requirement for signing is enforced by the sign command, not Get(), so that
+	// the verification commands can enable sigstore-go to verify legacy online
+	// signatures. Get() must not reject either combination.
+	for _, mode := range []string{"online", "offline"} {
+		execFn = func() (io.Reader, error) {
+			return strings.NewReader("gitsign.enableSigstoreGo true\ngitsign.rekorMode " + mode + "\n"), nil
+		}
+		got, err := Get()
+		if err != nil {
+			t.Fatalf("rekorMode %q: unexpected error: %v", mode, err)
+		}
+		if !got.EnableSigstoreGo {
+			t.Errorf("rekorMode %q: EnableSigstoreGo = false, want true", mode)
+		}
+		if got.RekorMode != mode {
+			t.Errorf("rekorMode %q: RekorMode = %q, want %q", mode, got.RekorMode, mode)
+		}
+	}
+}
+
+func TestRekorVersion(t *testing.T) {
+	t.Cleanup(func() { execFn = realExec })
+
+	for _, tc := range []struct {
+		name    string
+		config  string
+		want    uint32
+		wantErr bool
+	}{
+		{
+			name:   "default is v1 when unset",
+			config: "",
+			want:   1,
+		},
+		{
+			name:   "explicit v1 with sigstore-go + offline",
+			config: "gitsign.rekorVersion 1\ngitsign.enableSigstoreGo true\ngitsign.rekorMode offline\n",
+			want:   1,
+		},
+		{
+			name:   "v2 with sigstore-go + offline",
+			config: "gitsign.rekorVersion 2\ngitsign.enableSigstoreGo true\ngitsign.rekorMode offline\n",
+			want:   2,
+		},
+		{
+			// The option only applies to the sigstore-go signing path; the legacy
+			// path is Rekor v1 only. enableSigstoreGo defaults to true, so it must
+			// be explicitly disabled to exercise the gate.
+			name:    "v2 with sigstore-go disabled errors",
+			config:  "gitsign.rekorVersion 2\ngitsign.enableSigstoreGo false\n",
+			wantErr: true,
+		},
+		{
+			// Even v1 may not be set explicitly without the sigstore-go path.
+			name:    "explicit v1 with sigstore-go disabled errors",
+			config:  "gitsign.rekorVersion 1\ngitsign.enableSigstoreGo false\n",
+			wantErr: true,
+		},
+		{
+			name:    "unsupported version errors",
+			config:  "gitsign.rekorVersion 3\ngitsign.enableSigstoreGo true\ngitsign.rekorMode offline\n",
+			wantErr: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			execFn = func() (io.Reader, error) {
+				return strings.NewReader(tc.config), nil
+			}
+			got, err := Get()
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got config: %+v", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got.RekorVersion != tc.want {
+				t.Errorf("RekorVersion: got %d, want %d", got.RekorVersion, tc.want)
+			}
+		})
+	}
+}
+
+func TestRekorVersionEnv(t *testing.T) {
+	t.Cleanup(func() { execFn = realExec })
+	execFn = func() (io.Reader, error) {
+		return strings.NewReader("gitsign.enableSigstoreGo true\ngitsign.rekorMode offline\n"), nil
+	}
+
+	t.Run("GITSIGN prefix", func(t *testing.T) {
+		t.Setenv("GITSIGN_REKOR_VERSION", "2")
+		got, err := Get()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got.RekorVersion != 2 {
+			t.Errorf("RekorVersion: got %d, want 2", got.RekorVersion)
+		}
+	})
+
+	t.Run("SIGSTORE prefix", func(t *testing.T) {
+		t.Setenv("SIGSTORE_REKOR_VERSION", "2")
+		got, err := Get()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got.RekorVersion != 2 {
+			t.Errorf("RekorVersion: got %d, want 2", got.RekorVersion)
+		}
+	})
+
+	t.Run("GITSIGN takes precedence over SIGSTORE", func(t *testing.T) {
+		t.Setenv("SIGSTORE_REKOR_VERSION", "1")
+		t.Setenv("GITSIGN_REKOR_VERSION", "2")
+		got, err := Get()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got.RekorVersion != 2 {
+			t.Errorf("RekorVersion: got %d, want 2", got.RekorVersion)
+		}
+	})
+
+	t.Run("non-numeric errors", func(t *testing.T) {
+		t.Setenv("GITSIGN_REKOR_VERSION", "banana")
+		if _, err := Get(); err == nil {
+			t.Error("expected error for non-numeric GITSIGN_REKOR_VERSION")
+		}
+	})
 }

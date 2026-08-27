@@ -22,7 +22,6 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/pem"
 	"errors"
 	"fmt"
 
@@ -31,8 +30,9 @@ import (
 	"github.com/go-openapi/swag/conv"
 
 	"github.com/sigstore/cosign/v3/pkg/cosign"
-	cms "github.com/sigstore/gitsign/internal/fork/ietf-cms"
 	rekoroid "github.com/sigstore/gitsign/internal/rekor/oid"
+	"github.com/sigstore/gitsign/internal/rekor/tlog"
+	"github.com/sigstore/gitsign/internal/sigstore/compat"
 	"github.com/sigstore/gitsign/internal/sigstoreroot"
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
@@ -49,6 +49,11 @@ import (
 type Verifier interface {
 	Verify(ctx context.Context, commitSHA string, cert *x509.Certificate) (*models.LogEntryAnon, error)
 	VerifyInclusion(ctx context.Context, sig []byte, cert *x509.Certificate) (*models.LogEntryAnon, error)
+	// Search returns the Rekor entry matching the commit SHA + cert via the
+	// online search API, without verifying its inclusion proof / SET. It is the
+	// lookup half of Verify, broken out for callers that perform their own entry
+	// verification (e.g. the sigstore-go path).
+	Search(ctx context.Context, commitSHA string, cert *x509.Certificate) (*models.LogEntryAnon, error)
 }
 
 // Writer represents a mechanism to write content to Rekor.
@@ -105,7 +110,7 @@ func (c *Client) WriteMessage(ctx context.Context, message, signature []byte, ce
 	if _, err := checkSum.Write(message); err != nil {
 		return nil, err
 	}
-	return cosign.TLogUpload(ctx, c.Rekor, signature, checkSum, pem)
+	return tlog.Upload(ctx, c.Rekor, signature, checkSum, pem)
 }
 
 func (c *Client) get(ctx context.Context, data []byte, cert *x509.Certificate) (*models.LogEntryAnon, error) {
@@ -130,7 +135,7 @@ func (c *Client) get(ctx context.Context, data []byte, cert *x509.Certificate) (
 			return nil, fmt.Errorf("invalid rekor UUID: %w", err)
 		}
 
-		e, err := cosign.GetTlogEntry(ctx, c.Rekor, u)
+		e, err := tlog.GetEntry(ctx, c.Rekor, u)
 		if err != nil {
 			return nil, err
 		}
@@ -179,6 +184,16 @@ func (c *Client) findTLogEntriesByPK(ctx context.Context, pubKey []byte) (uuids 
 	return searchIndex.GetPayload(), nil
 }
 
+// Search returns the Rekor entry matching the commit SHA + cert using the online
+// search API, without verifying the entry's inclusion proof / SET. It is the
+// lookup half of Verify.
+//
+// Note: this relies on non-GA behavior of Rekor (the search index), and remains
+// for backwards compatibility with older "online" signatures.
+func (c *Client) Search(ctx context.Context, commitSHA string, cert *x509.Certificate) (*models.LogEntryAnon, error) {
+	return c.get(ctx, []byte(commitSHA), cert)
+}
+
 // Verify verifies a commit using online verification.
 //
 // This is done by:
@@ -189,7 +204,7 @@ func (c *Client) findTLogEntriesByPK(ctx context.Context, pubKey []byte) (uuids 
 // This function relies on non-GA behavior of Rekor, and remains for backwards
 // compatibility with older signatures.
 func (c *Client) Verify(ctx context.Context, commitSHA string, cert *x509.Certificate) (*models.LogEntryAnon, error) {
-	e, err := c.get(ctx, []byte(commitSHA), cert)
+	e, err := c.Search(ctx, commitSHA, cert)
 	if err != nil {
 		return nil, err
 	}
@@ -272,15 +287,8 @@ func getRekorPubsFromTrustedRoot(_ context.Context) (*cosign.TrustedTransparency
 // NOTE: This does **not** verify the correctness of the signature against the content.
 // Prefer using [git.Verify] instead for complete verification.
 func (c *Client) VerifyInclusion(ctx context.Context, sig []byte, cert *x509.Certificate) (*models.LogEntryAnon, error) {
-	// Try decoding as PEM
-	var der []byte
-	if blk, _ := pem.Decode(sig); blk != nil {
-		der = blk.Bytes
-	} else {
-		der = sig
-	}
-	// Parse signature
-	sd, err := cms.ParseSignedData(der)
+	// Parse signature (PEM-armored or raw DER).
+	sd, err := compat.ParseSignaturePEM(sig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse signature: %w", err)
 	}

@@ -16,10 +16,13 @@ package show
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/sigstore/gitsign/internal/config"
 	"github.com/sigstore/gitsign/pkg/attest"
 	"github.com/spf13/cobra"
@@ -45,7 +48,7 @@ func (o *options) Run(w io.Writer, args []string) error {
 		revision = args[0]
 	}
 
-	out, err := attest.CommitStatement(repo, o.FlagRemote, revision)
+	out, err := statement(repo, o.FlagRemote, revision)
 	if err != nil {
 		return err
 	}
@@ -54,6 +57,28 @@ func (o *options) Run(w io.Writer, args []string) error {
 	enc.SetIndent("", "  ")
 
 	return enc.Encode(out)
+}
+
+// statement resolves the revision and returns a tag or commit attestation
+// depending on the object type it points to. Lightweight tags are rejected
+// since all their data comes from the commit — use the commit ref directly
+// instead.
+func statement(repo *git.Repository, remote, revision string) (*intoto.Statement, error) {
+	ref, err := repo.Reference(plumbing.NewTagReferenceName(revision), false)
+	if err == nil {
+		obj, err := repo.Object(plumbing.AnyObject, ref.Hash())
+		if err != nil {
+			return nil, err
+		}
+		if obj.Type() == plumbing.TagObject {
+			return attest.TagStatement(repo, remote, revision)
+		}
+		// Lightweight tag — reject it.
+		return nil, fmt.Errorf("%s is not an annotated tag", revision)
+	}
+
+	// Not a tag ref at all — resolve as a commit.
+	return attest.CommitStatement(repo, remote, revision)
 }
 
 func New(_ *config.Config) *cobra.Command {
