@@ -19,7 +19,7 @@ package initialize
 
 import (
 	"github.com/sigstore/cosign/v3/cmd/cosign/cli/initialize"
-	"github.com/sigstore/sigstore/pkg/tuf"
+	"github.com/sigstore/sigstore/pkg/tuf" //nolint:staticcheck // using legacy TUF for compatibility
 	"github.com/spf13/cobra"
 )
 

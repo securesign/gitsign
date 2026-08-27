@@ -43,7 +43,7 @@ import (
 	hashedrekord_v001 "github.com/sigstore/rekor/pkg/types/hashedrekord/v0.0.1"
 	"github.com/sigstore/rekor/pkg/types/intoto"
 	intoto_v001 "github.com/sigstore/rekor/pkg/types/intoto/v0.0.1"
-	"github.com/sigstore/sigstore/pkg/tuf"
+	"github.com/sigstore/sigstore/pkg/tuf" //nolint:staticcheck // using legacy TUF for compatibility
 )
 
 // Upload uploads a hashedrekord entry for the signature over a message with the
