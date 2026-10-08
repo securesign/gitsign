@@ -17,10 +17,10 @@ RUN git config --global --add safe.directory /opt/app-root/src && \
     go mod download && \
     make -f Build.mak cross-platform
 
-FROM --platform=linux/amd64   quay.io/securesign/gitsign@sha256:ae98e196a5c1e241c47b88cfbea9947f4c7d40a8419dd8122c420231b720041c AS build-amd64
-FROM --platform=linux/arm64   quay.io/securesign/gitsign@sha256:34f02fdbde0495cddaeb68dc069e7157763d4c245f24d996ed2433b8a62bf3f8 AS build-arm64
-FROM --platform=linux/ppc64le quay.io/securesign/gitsign@sha256:52d90672d54993b48185319b456b0f17b5285cbfa37dfbbad3983f252df332c5 AS build-ppc64le
-FROM --platform=linux/s390x   quay.io/securesign/gitsign@sha256:8695c7ae18cb94d3be78cba1527a5f6c171a905eaf2a052f384e893c88269448 AS build-s390x
+FROM --platform=linux/amd64   quay.io/securesign/gitsign@sha256:0766cd302bb939be75a5ca2a6ad071aded89b8dbc2e21d769033713da1d09639 AS build-amd64
+FROM --platform=linux/arm64   quay.io/securesign/gitsign@sha256:2ad04695de3e2789022628fad2c1542d6d80f12cc0cbdb5ffa49154cc94a4fc8 AS build-arm64
+FROM --platform=linux/ppc64le quay.io/securesign/gitsign@sha256:61820a05d8f4a09ddcc7954897ac1a355bd7c8b9a5b07b570085b63363467f15 AS build-ppc64le
+FROM --platform=linux/s390x   quay.io/securesign/gitsign@sha256:64853ed350a05daa975d26f14575b9735b716f359722efc178b517c23f2b6923 AS build-s390x
 
 FROM registry.redhat.io/ubi9/go-toolset:9.8-1783931515@sha256:c6b19c92a8613bcfdf69ef00a6ea94ac689ec76d07758d71416c1faa6f35f431 AS packager
 USER root
