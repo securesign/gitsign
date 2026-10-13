@@ -8,20 +8,23 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main"
+      == "release-1.5" && ("cmd/***".pathChanged()
+      || "internal/***".pathChanged() || "pkg/***".pathChanged() || "Makefile".pathChanged()
+      || "Dockerfile.gitsign.rh".pathChanged() || "go.mod".pathChanged() || "go.sum".pathChanged()
+      || "main.go".pathChanged() || "trigger-konflux-builds.txt".pathChanged() )
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: cli-stacks
-    appstudio.openshift.io/component: gitsign-cli-stack
+    appstudio.openshift.io/application: tas-tools-v1-5
+    appstudio.openshift.io/component: gitsign-v1-5
     pipelines.appstudio.openshift.io/type: build
-  name: gitsign-cli-stack-on-pull-request
+  name: gitsign-v1-5-on-pull-request
   namespace: rhtas-tenant
 spec:
   params:
   - name: release-version
     value: 1.5.0
   - name: dockerfile
-    value: Dockerfile.cli-stack.rh
+    value: Dockerfile.gitsign.rh
   - name: ALLOW_CROSS_PLATFORM_IMAGES
     value: "true"
   - name: git-url
@@ -29,7 +32,7 @@ spec:
   - name: image-expires-after
     value: 5d
   - name: output-image
-    value: quay.io/securesign/gitsign-cli-stack:on-pr-{{revision}}
+    value: quay.io/securesign/gitsign:on-pr-{{revision}}
   - name: path-context
     value: .
   - name: revision
@@ -40,6 +43,18 @@ spec:
     value: "true"
   - name: build-source-image
     value: "true"
+  - name: go_unit_test
+    value: "true"
+  - name: go_test_command
+    value: go test $(go list ./... | grep -v github.com/sigstore/gitsign/pkg/version)
+  - name: build-platforms
+    value:
+      - linux/x86_64
+      - linux/arm64
+      - linux/ppc64le
+      - linux/s390x
+  - name: fips-check
+    value: "true"
   pipelineRef:
     params:
     - name: url
@@ -47,10 +62,17 @@ spec:
     - name: revision
       value: main
     - name: pathInRepo
-      value: pipelines/docker-build-oci-ta.yaml
+      value: pipelines/docker-build-multi-platform-oci-ta.yaml
     resolver: git
+  taskRunSpecs:
+  - pipelineTaskName: run-unit-test
+    stepSpecs:
+    - computeResources:
+        limits:
+          memory: 4Gi
+      name: run-tests
   taskRunTemplate:
-    serviceAccountName: build-pipeline-gitsign-cli-stack
+    serviceAccountName: build-pipeline-gitsign-v1-5
   workspaces:
   - name: git-auth
     secret:
