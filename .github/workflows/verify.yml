@@ -2,8 +2,12 @@ name: Verify
 
 on:
   pull_request:
-    branches:
-      - "main"
+    paths-ignore:
+      - 'Dockerfile.gitsign.rh'
+      - 'Dockerfile.cli-stack.rh'
+      - '.tekton/**'
+      - '**.md'
+      - 'LICENSE'
 
 permissions: {}
 
