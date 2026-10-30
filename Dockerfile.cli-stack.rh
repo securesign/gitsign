@@ -1,4 +1,4 @@
-FROM registry.redhat.io/ubi9/go-toolset:9.8-1793107762@sha256:c8947b60e6568dcdc5f66d382e18fa1fb89039918f59783e45b8c90847579955 AS build-cross-platform
+FROM registry.redhat.io/ubi9/go-toolset:9.8-1793294290@sha256:cab9089469c52029e4d8a4e9f717e87c51ab22eed448ebcada101b811f97dfe7 AS build-cross-platform
 ENV APP_ROOT=/opt/app-root \
     GOPATH=/opt/app-root
 
@@ -18,7 +18,7 @@ FROM --platform=linux/arm64   quay.io/securesign/gitsign@sha256:e5b63f7e4d9c40c6
 FROM --platform=linux/ppc64le quay.io/securesign/gitsign@sha256:f076cd0a1e2533671dcc8fef9909a4cef4c6dac25e52bd82e2a2a70caf03b765 AS build-ppc64le
 FROM --platform=linux/s390x   quay.io/securesign/gitsign@sha256:c81ee973a18389b73884f03a19ecb0b7b84a8bc9d0369c3754c4bf7d1db918bf AS build-s390x
 
-FROM registry.redhat.io/ubi9/go-toolset:9.8-1793107762@sha256:c8947b60e6568dcdc5f66d382e18fa1fb89039918f59783e45b8c90847579955 AS packager
+FROM registry.redhat.io/ubi9/go-toolset:9.8-1793294290@sha256:cab9089469c52029e4d8a4e9f717e87c51ab22eed448ebcada101b811f97dfe7 AS packager
 USER root
 RUN mkdir -p /binaries
 
