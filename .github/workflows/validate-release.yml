@@ -2,8 +2,12 @@ name: validate-release
 
 on:
   pull_request:
-    branches:
-      - "release-1.4"
+    paths-ignore:
+      - 'Dockerfile.gitsign.rh'
+      - 'Dockerfile.cli-stack.rh'
+      - '.tekton/**'
+      - '**.md'
+      - 'LICENSE'
   workflow_dispatch:
 
 jobs:

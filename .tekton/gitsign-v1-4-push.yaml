@@ -11,7 +11,8 @@ metadata:
       == "release-1.4" && ("cmd/***".pathChanged()
       || "internal/***".pathChanged() || "pkg/***".pathChanged() || "Makefile".pathChanged()
       || "Dockerfile.gitsign.rh".pathChanged() || "go.mod".pathChanged() || "go.sum".pathChanged()
-      || "main.go".pathChanged() || "trigger-konflux-builds.txt".pathChanged() )
+      || "main.go".pathChanged() || "trigger-konflux-builds.txt".pathChanged()
+      || ".tekton/gitsign-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: tas-tools-v1-4
