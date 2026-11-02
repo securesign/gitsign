@@ -93,7 +93,7 @@ func TestGet(t *testing.T) {
 		RedirectURL:      "example.com",
 		ConnectorID:      "bar",
 		RekorMode:        "online",
-		EnableSigstoreGo: true,
+		EnableSigstoreGo: false,
 		RekorVersion:     1,
 		Autoclose:        true,
 		AutocloseTimeout: 6,

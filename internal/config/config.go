@@ -61,12 +61,11 @@ type Config struct {
 	// Note: online verification will be deprecated in favor of offline in the future.
 	RekorMode string
 
-	// EnableSigstoreGo enables the sigstore-go code paths for both signing and
-	// verification (via the CMS<->bundle compat layer), for online and offline
-	// Rekor modes. It defaults to true; set gitsign.enableSigstoreGo=false (or
-	// GITSIGN_ENABLE_SIGSTORE_GO=false) to fall back to the legacy CMS + Rekor
-	// signing and verification. The on-disk CMS signature format is unchanged
-	// either way.
+	// EnableSigstoreGo enables the experimental sigstore-go code paths for
+	// both signing and verification (via the CMS<->bundle compat layer), for
+	// online and offline Rekor modes. It defaults to false; set
+	// gitsign.enableSigstoreGo=true (or GITSIGN_ENABLE_SIGSTORE_GO=true) to
+	// opt in. The on-disk CMS signature format is unchanged either way.
 	EnableSigstoreGo bool
 
 	// RekorVersion selects the Rekor API version to upload signatures to. One of
@@ -167,7 +166,7 @@ func Get() (*Config, error) {
 		Issuer:   "https://oauth2.sigstore.dev/auth",
 		// TODO: default to offline
 		RekorMode:        "online",
-		EnableSigstoreGo: true,
+		EnableSigstoreGo: false,
 		// RekorVersion is left at its zero value ("unset") here; it is normalized
 		// to the v1 default after validation, so that an explicitly-set value can
 		// be distinguished from the default and gated on enableSigstoreGo.
