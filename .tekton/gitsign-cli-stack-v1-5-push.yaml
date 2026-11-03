@@ -8,7 +8,11 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "release-1.5"
+      == "release-1.5" && ("cmd/***".pathChanged()
+      || "internal/***".pathChanged() || "pkg/***".pathChanged() || "Makefile".pathChanged()
+      || "Dockerfile.cli-stack.rh".pathChanged() || "go.mod".pathChanged() || "go.sum".pathChanged()
+      || "main.go".pathChanged() || "trigger-konflux-builds.txt".pathChanged()
+      || ".tekton/gitsign-cli-stack-v1-5-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: cli-stacks-v1-5
