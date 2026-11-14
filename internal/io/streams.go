@@ -20,7 +20,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/mattn/go-tty"
+	"github.com/mattn/go-tty/v2"
 )
 
 type Streams struct {
